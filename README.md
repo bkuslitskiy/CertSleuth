@@ -48,19 +48,24 @@ Caddyfile, `manage.py migrate` + `setup_schedules` in the web container, nightly
 `scripts/backup.sh` via VM cron.
 
 ## Known TODOs (in priority order)
-- RLS full enforcement needs the per-request `SET certsleuth.user_id` middleware and a
-  non-owner DB role — policies ship, wiring is stubbed (see migration README + SEC-008).
-- Gmail scan: enrollment queue, approval queue (GmailScanRequest, SEC-013), and gating
-  are built; the OAuth dance itself awaits console credentials (GOOGLE_OAUTH_* in .env,
-  docs/gcp-setup.md §2) — implement in apps/tracker/gmail.py when creds exist; it should
-  execute *approved* requests only.
+- RLS enforcement flip: the policy mechanism is verified on Postgres (tests/test_rls.py,
+  SEC-016); remaining is deploy-side — provision a non-owner web role + point its
+  DATABASE_URL at it, and run django-q workers as the owner role (cross-user tasks). App
+  code is RLS-ready (middleware + ICS feed scoped).
+- Gmail scan execution: enrollment queue, approval queue (GmailScanRequest, SEC-013),
+  gating, and the gmail.py run_scan state machine + config gate are built and tested. The
+  OAuth consent → Gmail fetch → extract-and-discard → StagedChange body is the one marked
+  remaining step; needs GOOGLE_OAUTH_* creds (docs/gcp-setup.md §2). Runs approved only.
 - Deploy: image + app stack validated locally on Postgres (build, migrate, gunicorn,
   django-q, DEBUG=false static — via docker-compose.smoke.yml). Remaining: provision the
   GCP e2-micro and exercise the real docker-compose.yml with Caddy TLS (needs the VM +
   public DNS) — see docs/gcp-setup.md.
+- LinkedIn CSV importer: built against LinkedIn's documented columns; verify exact headers
+  against a real export before relying on it (importers.linkedin_parse).
 - Run the preload: extraction worker sessions over the 21 seeded sources.
 
-Done since first boot: initial migrations committed; cert-number encryption
-(EncryptedCharField, SEC-009); Credly import writes rows on confirm and queues unmatched
-badges for research (D16); django-q schedules via `manage.py setup_schedules`; approver
-role grants the admin review surfaces (SEC-012).
+Done since first boot: initial migrations; cert-number encryption (SEC-009); django-q
+schedules; approver role → admin surfaces (SEC-012); approver-gated spend (SEC-013);
+credential importers — Credly, Microsoft Learn, Accredible, Open Badges, LinkedIn
+(spec 5.2-5.5, SEC-015); Docker image hardening (.dockerignore/collectstatic, SEC-014);
+RLS mechanism proven on Postgres (SEC-016); CI green.
