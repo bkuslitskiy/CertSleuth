@@ -18,3 +18,11 @@ def test_approver_cannot_manage_users(client, approver):
 def test_plain_user_has_no_admin_perms(user):
     assert not user.has_perm("research.view_stagedchange")
     assert not user.has_module_perms("research")
+
+
+def test_superuser_counts_as_approver(db):
+    """createsuperuser leaves role='user'; the review-queue nav link keys on is_approver."""
+    from django.contrib.auth import get_user_model
+    su = get_user_model().objects.create_superuser(
+        username="root", email="root@example.com", password="a-long-test-password")
+    assert su.is_approver

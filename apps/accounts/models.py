@@ -29,7 +29,8 @@ class User(AbstractUser):
 
     @property
     def is_approver(self):
-        return self.role in (Role.APPROVER, Role.ADMIN)
+        # Superusers (createsuperuser leaves role at its default) are approvers too.
+        return self.is_superuser or self.role in (Role.APPROVER, Role.ADMIN)
 
     # SEC-012: role, not per-user permission rows, is the authorization source of truth.
     # Approvers get the review surfaces (staging, sources, offers, enrollment queue);
