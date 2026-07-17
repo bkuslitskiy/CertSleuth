@@ -16,3 +16,6 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-django>=4.8", "bandit>=1.7", "pip-audit>=2.7", "ruff>=0.5"]
+
+[tool.setuptools.packages.find]
+include = ["apps*", "config*", "worker*", "schemas*"]

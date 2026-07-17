@@ -1,6 +1,12 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import ObjectDoesNotExist
 from .models import ExtractionJob, StagedChange, SourceSubmission, ChangeReport, WorkerToken
 from .publish import publish
+
+# Publish order within a batch: rows that others reference go first (a renewal_rule
+# or upgrade_path looks up its Certification by slug at publish time).
+PUBLISH_KIND_ORDER = {"certification": 0, "renewal_rule": 1, "credit_rule": 2,
+                      "upgrade_path": 3, "free_offer": 4}
 
 
 @admin.register(StagedChange)
@@ -12,8 +18,22 @@ class StagedChangeAdmin(admin.ModelAdmin):
 
     @admin.action(description="Approve & publish selected")
     def approve_selected(self, request, queryset):
-        for staged in queryset.filter(status=StagedChange.Status.PENDING):
-            publish(staged, request.user)
+        pending = sorted(queryset.filter(status=StagedChange.Status.PENDING),
+                         key=lambda s: (PUBLISH_KIND_ORDER.get(s.kind, 9), s.pk))
+        published, failed = 0, 0
+        for staged in pending:
+            try:
+                publish(staged, request.user)
+                published += 1
+            except ObjectDoesNotExist as e:
+                failed += 1
+                self.message_user(request, f"#{staged.pk} ({staged.kind}) left pending: {e}",
+                                  level=messages.ERROR)
+        if published:
+            self.message_user(request, f"Published {published} change(s).", level=messages.SUCCESS)
+        if failed:
+            self.message_user(request, f"{failed} change(s) reference a missing catalog row; "
+                              "publish their certifications first.", level=messages.WARNING)
 
     @admin.action(description="Reject selected")
     def reject_selected(self, request, queryset):
