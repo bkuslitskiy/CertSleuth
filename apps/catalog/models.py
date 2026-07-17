@@ -71,6 +71,10 @@ class RenewalRule(models.Model):
                                          related_name="supersedes")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        current = " (superseded)" if self.superseded_by_id else ""
+        return f"{self.certification} rule: {self.ceu_required or '?'} CEU / {self.cycle_years or '?'}yr{current}"
+
 
 class UpgradePath(models.Model):
     class Effect(models.TextChoices):
@@ -88,6 +92,9 @@ class UpgradePath(models.Model):
     class Meta:
         unique_together = [("from_cert", "to_cert", "effect")]
 
+    def __str__(self):
+        return f"{self.from_cert.name} → {self.to_cert.name} ({self.get_effect_display()})"
+
 
 class CreditRule(models.Model):
     """Cross-crediting eligibility (D8): activity kinds -> provider category. The matrix."""
@@ -98,3 +105,6 @@ class CreditRule(models.Model):
     source = models.ForeignKey(Source, null=True, on_delete=models.SET_NULL)
     confidence = models.CharField(max_length=20, choices=Confidence.choices, default=Confidence.ACCEPTED)
     last_verified_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.provider.name} {self.category}: {self.credits_per_hour}/hr"

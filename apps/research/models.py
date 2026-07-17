@@ -19,6 +19,9 @@ class ExtractionJob(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
+    def __str__(self):
+        return f"Job {self.pk} [{self.get_status_display()}] {self.source.url}"
+
 
 class WorkerToken(models.Model):
     """SEC-004: per-worker token, scoped to claim/submit only. Store hash, never the token."""
@@ -26,6 +29,9 @@ class WorkerToken(models.Model):
     token_hash = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
     revoked = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.name}{' (revoked)' if self.revoked else ''}"
 
     @staticmethod
     def make():
@@ -57,12 +63,19 @@ class StagedChange(models.Model):
                                     on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        label = (self.payload.get("name") or self.payload.get("certification_name")
+                 or self.payload.get("title") or self.payload.get("from_certification_slug", ""))
+        return f"#{self.pk} {self.get_kind_display()}: {label}"
+
 
 class SourceSubmission(models.Model):
     """D16: inert until an Approver triggers the crawl. Untrusted users can't cause spend."""
     class Status(models.TextChoices):
         QUEUED = "queued", "Queued (inert)"
-        CRAWLED = "crawled", "Crawled"
+        # value stays 'crawled' (no migration); label says what actually happened —
+        # promotion to the Source registry + a queued ExtractionJob, not a finished crawl
+        CRAWLED = "crawled", "Promoted — extraction job queued"
         REJECTED = "rejected", "Rejected"
 
     url = models.URLField(max_length=500)
@@ -70,6 +83,9 @@ class SourceSubmission(models.Model):
     submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.description or self.url
 
 
 class ChangeReport(models.Model):
@@ -85,3 +101,6 @@ class ChangeReport(models.Model):
     reported_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_status_display()}: {self.target_kind} #{self.target_id}"

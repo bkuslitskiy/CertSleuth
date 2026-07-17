@@ -16,11 +16,17 @@ class UserCertification(models.Model):
     class Meta:
         unique_together = [("user", "certification")]
 
+    def __str__(self):
+        return f"{self.user.email}: {self.certification}"
+
 
 class UserGoal(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="goals")
     certification = models.ForeignKey("catalog.Certification", on_delete=models.PROTECT)
     target_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.email} → {self.certification}"
 
 
 class Activity(models.Model):
@@ -30,6 +36,12 @@ class Activity(models.Model):
     date = models.DateField()
     hours = models.DecimalField(max_digits=5, decimal_places=2)
     evidence_url = models.URLField(blank=True, max_length=500)
+
+    class Meta:
+        verbose_name_plural = "activities"
+
+    def __str__(self):
+        return f"{self.title} ({self.hours}h, {self.date})"
 
 
 class CreditMapping(models.Model):
@@ -46,3 +58,6 @@ class CreditMapping(models.Model):
     credits = models.DecimalField(max_digits=5, decimal_places=2)
     status = models.CharField(max_length=16, choices=SubmissionStatus.choices,
                               default=SubmissionStatus.UNSUBMITTED)
+
+    def __str__(self):
+        return f"{self.activity.title} → {self.provider.name}: {self.credits} ({self.get_status_display()})"

@@ -21,3 +21,6 @@ class FreeOffer(models.Model):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     last_verified_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} [{self.get_status_display()}]"

@@ -69,10 +69,19 @@ class Invite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.email}{' (accepted)' if self.accepted_at else ''}"
+
 
 class WaitlistEntry(models.Model):
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "waitlist entries"
+
+    def __str__(self):
+        return self.email
 
 
 class EnrollmentTask(models.Model):
@@ -88,3 +97,6 @@ class EnrollmentTask(models.Model):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.gmail_address} [{self.get_status_display()}]"
