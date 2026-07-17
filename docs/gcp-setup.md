@@ -16,9 +16,19 @@ costs money except the domain (and egress if you get popular).
    - **Name** `certsleuth-vm`
    - **Region**: `us-west1`, `us-central1`, or `us-east1` — **only these qualify for
      Always Free**. Machine type **e2-micro**.
+   - **Provisioning model: Standard, NOT Spot.** Under Machine configuration → Advanced,
+     leave the VM provisioning model on **Standard**. Spot is cheaper per-hour but is
+     preemptible — Google can shut it down at any time (killing the app + Postgres +
+     worker on the box), and Spot is billed at spot rates rather than covered by Always
+     Free. The free e2-micro must be a standard, non-preemptible instance.
    - **Boot disk**: 30 GB **standard persistent disk** (the free allowance; balanced/SSD
-     is not free). Debian 12.
+     is not free). Debian 12 or 13 (current) — both fine.
    - **Firewall**: check *Allow HTTP* and *Allow HTTPS*.
+
+   Cost note: a standard e2-micro in a free region is $0 under Always Free (one instance/
+   month). The console's monthly estimate may still show the ~$6/mo list price — the free
+   tier is applied at billing, not always in the estimator. A ~$3.53 estimate with a
+   "Discount" line means Spot is selected — switch it to Standard.
 3. Reserve the external IP: VPC network → IP addresses → the VM's ephemeral IP →
    *Reserve* (a static IP attached to a running instance is free; detached, it bills).
 4. DNS (at SiteGround, which keeps the landing page per D9): `A` records for
