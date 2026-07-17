@@ -23,6 +23,10 @@
 <p>
   <a class="btn" href="{% url 'add_cert' %}">Add a certification</a>
   <a class="btn quiet" href="{% url 'credly_import' %}">Import from Credly</a>
+  <a class="btn quiet" href="{% url 'import_source' 'microsoft' %}">Microsoft Learn</a>
+  <a class="btn quiet" href="{% url 'import_source' 'accredible' %}">Accredible</a>
+  <a class="btn quiet" href="{% url 'import_source' 'openbadges' %}">Open Badge file</a>
+  <a class="btn quiet" href="{% url 'import_source' 'linkedin' %}">LinkedIn CSV</a>
   {% if user.gmail_scan_enabled %}
   <form method="post" action="{% url 'request_gmail_scan' %}" style="display:inline">
     {% csrf_token %}<button class="btn quiet">Scan my inbox</button></form>

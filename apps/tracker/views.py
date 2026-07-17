@@ -5,10 +5,26 @@ from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model
 from .models import UserCertification
-from .forms import UserCertificationForm, ActivityForm, CredlyImportForm
+from .forms import (UserCertificationForm, ActivityForm, CredlyImportForm,
+                    MSLearnImportForm, AccredibleImportForm, OpenBadgeUploadForm,
+                    LinkedInCSVForm)
 from .credly import fetch_credly_badges, match_badges
+from . import importers
 
 User = get_user_model()
+
+# Non-Credly import sources (spec 5.3-5.5), all sharing importers.confirm_import.
+# kind "url" fetches a pasted link; kind "file" parses an upload.
+IMPORT_SOURCES = {
+    "microsoft": {"label": "Microsoft Learn", "kind": "url",
+                  "form": MSLearnImportForm, "fetch": importers.microsoft_fetch},
+    "accredible": {"label": "Accredible", "kind": "url",
+                   "form": AccredibleImportForm, "fetch": importers.accredible_fetch},
+    "openbadges": {"label": "Open Badges", "kind": "file",
+                   "form": OpenBadgeUploadForm, "fetch": importers.openbadge_parse},
+    "linkedin": {"label": "LinkedIn", "kind": "file",
+                 "form": LinkedInCSVForm, "fetch": importers.linkedin_parse},
+}
 
 
 @login_required
@@ -85,6 +101,32 @@ def credly_import(request):
             messages.error(request, "Couldn't reach Credly. Endpoint is unofficial — "
                                     "try the badge-file upload instead.")
     return render(request, "dashboard/credly_import.html", {"form": form, "matches": matches})
+
+
+@login_required
+def import_source(request, source):
+    """Generic import flow for spec 5.3-5.5 sources. Lookup/upload renders a preview of
+    catalog matches; confirm writes matched rows and queues unmatched (importers.py)."""
+    cfg = IMPORT_SOURCES.get(source)
+    if cfg is None:
+        raise Http404
+    if request.method == "POST" and "confirm" in request.POST:
+        created, queued = importers.confirm_import(request)
+        msg = f"Imported {created} certification(s)."
+        if queued:
+            msg += f" Queued {queued} unmatched credential(s) for research."
+        messages.success(request, msg)
+        return redirect("dashboard")
+    form = cfg["form"](request.POST or None, request.FILES or None)
+    matches = None
+    if request.method == "POST" and form.is_valid():
+        try:
+            matches = importers.match_catalog(cfg["fetch"](form))
+        except (httpx.HTTPError, ValueError, KeyError) as e:
+            messages.error(request, f"Couldn't read that {cfg['label']} credential: {e}")
+    return render(request, "dashboard/import_preview.html",
+                  {"form": form, "matches": matches, "label": cfg["label"],
+                   "source": source, "kind": cfg["kind"]})
 
 
 @login_required

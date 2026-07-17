@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Import from {{ label }}</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+<form method="post" {% if kind == "file" %}enctype="multipart/form-data"{% endif %}>
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn">{% if kind == "file" %}Upload{% else %}Look up{% endif %}</button>
+</form>
+{% if matches is not None %}
+{% if matches %}
+<h2>Found</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+<form method="post">{% csrf_token %}
+<div class="card"><table>
+  <tr><th></th><th>Credential</th><th>Issued</th><th>Expires</th><th>Catalog match</th></tr>
+  {% for m in matches %}
+  <tr>
+    <td>{% if m.cert %}<input type="checkbox" name="import_badge" checked
+        value='{"cert_id": {{ m.cert.pk }}, "issued": "{{ m.issued|default:"" }}", "expires": "{{ m.expires|default:"" }}", "source": "{{ source }}"}'>
+        {% else %}<input type="checkbox" name="queue_badge" checked
+        value='{"name": "{{ m.name|escapejs }}", "url": "{{ m.url|escapejs }}", "source": "{{ label|escapejs }}"}'>{% endif %}</td>
+    <td>{{ m.name }}</td><td class="num">{{ m.issued|default:"—" }}</td>
+    <td class="num">{{ m.expires|default:"—" }}</td>
+    <td>{% if m.cert %}{{ m.cert }}{% else %}no match — queue for research{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table></div>
+<button class="btn" name="confirm" value="1">Import selected</button>
+</form>
+{% else %}
+<p class="empty">No credentials found in that {{ label }} source.</p>
+{% endif %}
+{% endif %}
+{% endblock %}
