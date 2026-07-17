@@ -23,7 +23,9 @@
 <p>
   <a class="btn" href="{% url 'add_cert' %}">Add a certification</a>
   <a class="btn quiet" href="{% url 'credly_import' %}">Import from Credly</a>
-  {% if user.gmail_scan_enabled %}<a class="btn quiet" href="#">Scan my inbox</a>
+  {% if user.gmail_scan_enabled %}
+  <form method="post" action="{% url 'request_gmail_scan' %}" style="display:inline">
+    {% csrf_token %}<button class="btn quiet">Scan my inbox</button></form>
   {% else %}<a class="btn quiet" href="{% url 'gmail_enrollment' %}">Enable inbox scanning</a>{% endif %}
 </p>
 <h2>Calendar feed</h2>

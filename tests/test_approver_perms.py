@@ -4,8 +4,8 @@
 def test_approver_can_open_review_admin_pages(client, approver):
     client.force_login(approver)
     for url in ("/admin/research/stagedchange/", "/admin/research/sourcesubmission/",
-                "/admin/catalog/source/", "/admin/offers/freeoffer/",
-                "/admin/accounts/enrollmenttask/"):
+                "/admin/research/gmailscanrequest/", "/admin/catalog/source/",
+                "/admin/offers/freeoffer/", "/admin/accounts/enrollmenttask/"):
         assert client.get(url).status_code == 200, url
 
 

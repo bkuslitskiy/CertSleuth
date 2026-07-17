@@ -88,6 +88,28 @@ class SourceSubmission(models.Model):
         return self.description or self.url
 
 
+class GmailScanRequest(models.Model):
+    """SEC-013: a scan is LLM/API spend, so the user's click only queues a request.
+    An Approver approves (or denies) it; execution lands with apps/tracker/gmail.py.
+    Lives in research so approver admin perms (SEC-012) cover it."""
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending approval"
+        APPROVED = "approved", "Approved — awaiting run"
+        DENIED = "denied", "Denied"
+        COMPLETED = "completed", "Completed"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="scan_requests")
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.email} [{self.get_status_display()}]"
+
+
 class ChangeReport(models.Model):
     """'Report outdated' on any fact. N open reports on one target -> disputed badge."""
     class Status(models.TextChoices):

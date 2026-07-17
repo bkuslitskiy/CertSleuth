@@ -147,6 +147,8 @@ restart runserver). Blank values keep the feature disabled with no other effect.
 
 ### 2.4 Scan behavior contract (already specced, for the implementer)
 
+- SEC-013: the user's "Scan my inbox" click creates a `GmailScanRequest`; the scan
+  itself runs only after an Approver approves it at `/admin/research/gmailscanrequest/`.
 - Fresh OAuth consent per scan; access token used for one pass, then discarded.
 - Query only known issuer senders (`from:credly.com OR from:isc2.org OR …`), never the
   whole mailbox.

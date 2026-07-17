@@ -1,6 +1,8 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ObjectDoesNotExist
-from .models import ExtractionJob, StagedChange, SourceSubmission, ChangeReport, WorkerToken
+from django.utils import timezone
+from .models import (ExtractionJob, StagedChange, SourceSubmission, ChangeReport,
+                     WorkerToken, GmailScanRequest)
 from .publish import publish
 
 # Publish order within a batch: rows that others reference go first (a renewal_rule
@@ -63,6 +65,30 @@ class SubmissionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ChangeReport)
+
+
+@admin.register(GmailScanRequest)
+class GmailScanRequestAdmin(admin.ModelAdmin):
+    """SEC-013 spend gate: scans run only after an approver approves here."""
+    list_display = ("user", "status", "created_at", "resolved_by", "resolved_at")
+    list_filter = ("status",)
+    actions = ["approve_selected", "deny_selected"]
+
+    def _resolve(self, request, queryset, status):
+        n = queryset.filter(status=GmailScanRequest.Status.PENDING).update(
+            status=status, resolved_by=request.user, resolved_at=timezone.now())
+        return n
+
+    @admin.action(description="Approve selected scans")
+    def approve_selected(self, request, queryset):
+        n = self._resolve(request, queryset, GmailScanRequest.Status.APPROVED)
+        self.message_user(request, f"Approved {n} scan(s). Execution runs once "
+                          "apps/tracker/gmail.py lands (OAuth creds required).")
+
+    @admin.action(description="Deny selected scans")
+    def deny_selected(self, request, queryset):
+        n = self._resolve(request, queryset, GmailScanRequest.Status.DENIED)
+        self.message_user(request, f"Denied {n} scan(s).")
 
 
 @admin.register(WorkerToken)

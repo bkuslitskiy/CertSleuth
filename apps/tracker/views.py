@@ -87,6 +87,24 @@ def credly_import(request):
     return render(request, "dashboard/credly_import.html", {"form": form, "matches": matches})
 
 
+@login_required
+def request_gmail_scan(request):
+    """SEC-013: the click queues; an Approver approves before anything runs."""
+    from apps.research.models import GmailScanRequest
+    if request.method != "POST":
+        return redirect("dashboard")
+    if not request.user.gmail_scan_enabled:
+        messages.error(request, "Inbox scanning isn't enabled for your account yet.")
+        return redirect("gmail_enrollment")
+    open_states = (GmailScanRequest.Status.PENDING, GmailScanRequest.Status.APPROVED)
+    if GmailScanRequest.objects.filter(user=request.user, status__in=open_states).exists():
+        messages.info(request, "You already have a scan awaiting approval or execution.")
+    else:
+        GmailScanRequest.objects.create(user=request.user)
+        messages.success(request, "Scan requested — it runs after an approver signs off.")
+    return redirect("dashboard")
+
+
 def ics_feed(request, token):
     """D5: tokenized read-only calendar of expirations. Token IS the auth (unguessable)."""
     try:

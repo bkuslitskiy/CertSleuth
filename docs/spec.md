@@ -110,6 +110,9 @@ Purpose: reminders and change alerts. Channels:
 ## 5. Minimizing Manual Entry (import strategies, ranked)
 
 ### 5.1 Gmail scanning — in scope (D13: on-demand only)
+> **Amended 2026-07-17 (SEC-013):** "on-demand" now means the user's click *queues* a
+> `GmailScanRequest`; an Approver approves it before anything executes. No user action
+> triggers API spend directly.
 `gmail.readonly` (restricted scope). Unverified external apps: ~100 test users, and "Testing" publishing status expires refresh tokens after ~7 days — acceptable because the design is a **one-shot on-demand scan**: user clicks "Scan my inbox" → fresh OAuth consent → single pass → token discarded. No stored Gmail tokens, no background sync. Re-verify current Google token policy before build.
 - Query known issuer senders (`from:credly.com OR from:isc2.org OR …`), never crawl the whole mailbox.
 - Extract-and-discard: persist message-ID + extracted fields + confidence, never raw bodies.

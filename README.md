@@ -50,9 +50,10 @@ Caddyfile, `manage.py migrate` + `setup_schedules` in the web container, nightly
 ## Known TODOs (in priority order)
 - RLS full enforcement needs the per-request `SET certsleuth.user_id` middleware and a
   non-owner DB role — policies ship, wiring is stubbed (see migration README + SEC-008).
-- Gmail scan: enrollment queue + gating are built; the OAuth dance itself awaits console
-  credentials (GOOGLE_OAUTH_* in .env, docs/gcp-setup.md §2) — implement in
-  apps/tracker/gmail.py when creds exist.
+- Gmail scan: enrollment queue, approval queue (GmailScanRequest, SEC-013), and gating
+  are built; the OAuth dance itself awaits console credentials (GOOGLE_OAUTH_* in .env,
+  docs/gcp-setup.md §2) — implement in apps/tracker/gmail.py when creds exist; it should
+  execute *approved* requests only.
 - Deploy: compose stack not yet exercised (needs Docker locally or the GCP VM).
 - Run the preload: extraction worker sessions over the 21 seeded sources.
 

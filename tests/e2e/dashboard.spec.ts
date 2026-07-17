@@ -19,6 +19,16 @@ test("dashboard shows empty states and theme toggles", async ({ page }) => {
   await expect(html).toHaveAttribute("data-theme", "light");
 });
 
+test("scan request from an unenrolled user bounces to enrollment (SEC-013 gate)", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("link", { name: /enable inbox scanning/i })).toBeVisible();
+  const token = await page.locator("input[name=csrfmiddlewaretoken]").first().inputValue();
+  const resp = await page.request.post("/track/gmail/scan-request/", {
+    form: { csrfmiddlewaretoken: token },
+  });
+  expect(resp.url()).toContain("/accounts/gmail-enrollment/");
+});
+
 test("ICS feed link is present and fetchable", async ({ page, request }) => {
   await login(page);
   const feedText = await page.locator(".data").first().innerText();
