@@ -5,22 +5,55 @@ as the Credly importer (D6): domain-pinned direct fetch of structured data, no L
 unofficial endpoints re-verified before each importer is built. All fetches below were
 performed live on 2026-07-17.
 
-## 1. Microsoft Learn transcripts — CONFIRMED (unofficial endpoint, official feature)
+## 1. Microsoft Learn transcripts — CONFIRMED LIVE against a real transcript
 
-- **Feature (official):** users generate a public share link from Learn profile →
-  Transcript → "Share link". Docs (updated 2025-06):
+- **Feature (official):** users generate a share link from Learn profile → Transcript →
+  "Share link". Docs (updated 2025-06):
   https://learn.microsoft.com/en-us/credentials/certifications/view-share-transcript
-- **Endpoint (unofficial):**
+- **IMPORTANT — the public profile does NOT expose certifications.** Verified 2026-07-17:
+  an unauthenticated Learn profile (`learn.microsoft.com/en-us/users/{username}/`) shows
+  only badges, learning paths, and modules — no Certifications section. Certifications are
+  visible only in the signed-in view or via a **transcript share link**. So unlike Credly
+  (paste public profile URL), MS Learn requires the user to actively generate a share link
+  first. More friction, but still a paste-a-URL flow.
+- **Endpoint (unofficial, tested live):**
   `GET https://learn.microsoft.com/api/profiles/transcript/share/{shareId}?locale=en-us`
-  Returns JSON: `certificationData.activeCertifications[]` (name, certificationNumber,
-  status, dateEarned, expiration), `appliedSkillsData.appliedSkillsCredentials[]`
-  (credentialId, title, awardedOn), `modulesCompleted[]`.
-  Community write-up: https://dev.to/wyattdave/using-microsoft-learn-api-to-validate-power-platform-makers-2moh
-- **Verified:** dummy shareId returns a clean API `404` (route live, wants a valid ID).
-  Full validation needs a real share link — generate one from any Learn profile.
-- **Import shape:** paste-share-link flow, regex-pin `learn.microsoft.com/api/profiles/transcript/share/`.
-- **Caveats:** undocumented — Microsoft may change it without notice. Certiport-earned
-  MS certs may not appear until MS finishes Certiport/Learn integration (per official doc).
+  The `{shareId}` is the path segment in the transcript URL, e.g.
+  `learn.microsoft.com/en-us/users/{username}/transcript/{shareId}` — NOT the username.
+- **Confirmed response schema** (fetched a real shared transcript; example values sanitized):
+  ```json
+  {
+    "totalModulesCompleted": 6, "totalLearningPathsCompleted": 1,
+    "userName": "...", "contactEmail": "...",          // PII — see caveat
+    "modulesCompleted": [ {"uid","title","durationInMinutes","completedOn"} ],
+    "learningPathsCompleted": [ ... ],
+    "certificationData": {
+      "legalName": "...", "mcid": "...",                // PII
+      "totalActiveCertifications": 1, "totalExamsPassed": 1,
+      "activeCertifications": [
+        {"name": "Microsoft Certified: Azure Fundamentals",
+         "certificationNumber": "XXXXXX-XXXXXX", "status": "Active",
+         "dateEarned": "2020-10-22T23:23:59+00:00"} ],
+      "passedExams": [ {"examTitle","examNumber": "AZ-900","examDateTaken"} ],
+      "qualifications": [], "historicalCertifications": []
+    }
+  }
+  ```
+  Note: the community write-up's `appliedSkillsData.appliedSkillsCredentials` field did
+  NOT appear; the real container is `certificationData` with `activeCertifications`,
+  `passedExams`, `qualifications`, `historicalCertifications`. No explicit expiration
+  field on this cert (Fundamentals don't expire); handle `expiration` as optional.
+- **Import shape:** paste-transcript-URL flow; regex-extract `/transcript/([a-z0-9]+)`;
+  fetch the API; map `certificationData.activeCertifications[]` (name + number + dateEarned)
+  to catalog; route misses through the unmatched → SourceSubmission queue like Credly.
+- **PRIVACY caveat (D7):** the response carries `contactEmail`, `legalName`, `mcid` —
+  the importer must extract only cert fields (name, number, dates) and must NOT persist
+  or log the email/legal name/MCID. `certificationNumber` goes into the encrypted
+  `UserCertification.cert_number` (SEC-009), same as a manually entered number.
+- **Caveats:** undocumented endpoint — Microsoft may change it without notice.
+  Certiport-earned MS certs may not appear until MS finishes Certiport/Learn integration
+  (per official doc). Community write-up (dated, partial schema):
+  https://dev.to/wyattdave/using-microsoft-learn-api-to-validate-power-platform-makers-2moh
 
 ## 2. Accredible / credential.net — CONFIRMED LIVE (unauthenticated public endpoint)
 
