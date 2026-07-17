@@ -22,6 +22,10 @@ import sys
 import urllib.request
 
 TOKEN = os.environ.get("CERTSLEUTH_WORKER_TOKEN", "")
+# Provider sites (e.g. scrumalliance.org) 403 a bare/absent User-Agent. Identify as a
+# normal browser so public policy pages are reachable.
+USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+              "Chrome/126.0 Safari/537.36 CertSleuthBot/1.0 (+https://certsleuth.com)")
 
 
 def _req(url, data=None):
@@ -39,7 +43,8 @@ def fetch(api, n):
     manifest = []
     for j in jobs:
         try:
-            with urllib.request.urlopen(j["source_url"], timeout=30) as resp:
+            req = urllib.request.Request(j["source_url"], headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=30) as resp:
                 content = resp.read()
         except Exception as e:
             print(f"job {j['job_id']}: fetch failed: {e}", file=sys.stderr)

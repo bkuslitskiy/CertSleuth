@@ -2,7 +2,7 @@
  "sources": [
   {"provider": "isc2", "urls": ["https://www.isc2.org/policies-procedures/cpe", "https://www.isc2.org/certifications", "https://www.isc2.org/exams/pricing"], "cadence_days": 7},
   {"provider": "atlassian", "urls": ["https://university.atlassian.com/student/catalog", "https://www.atlassian.com/university/certification"], "cadence_days": 7},
-  {"provider": "scrum-alliance", "urls": ["https://www.scrumalliance.org/get-certified/renew-a-certification", "https://www.scrumalliance.org/get-certified"], "cadence_days": 7},
+  {"provider": "scrum-alliance", "urls": ["https://www.scrumalliance.org/get-certified/renewing-certifications", "https://www.scrumalliance.org/get-certified"], "cadence_days": 7},
   {"provider": "google", "urls": ["https://cloud.google.com/learn/certification", "https://grow.google/certificates/"], "cadence_days": 7},
   {"provider": "aws", "urls": ["https://aws.amazon.com/certification/recertification/", "https://aws.amazon.com/certification/exams/"], "cadence_days": 7},
   {"provider": "microsoft", "urls": ["https://learn.microsoft.com/en-us/credentials/certifications/renew-your-microsoft-certification", "https://learn.microsoft.com/en-us/credentials/browse/"], "cadence_days": 7},
