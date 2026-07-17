@@ -11,7 +11,7 @@ Review cadence: touch this file in every PR that lands security-relevant code; f
 | V1 | Architecture, threat modeling | planned | Spec §7; threat notes in security.md; data-flow diagram TODO at repo kickoff | SEC-001..010 | 2026-07-16 |
 | V2 | Authentication | planned | Hardened auth library (no hand-rolled); TOTP optional; rate-limited login | SEC-009 | 2026-07-16 |
 | V3 | Session management | planned | httpOnly + SameSite cookies; server-side session invalidation on logout/role change | — | 2026-07-16 |
-| V4 | Access control | partial | Server-side role checks per route (User/Approver/Admin); role-based admin perms implemented + tested (tests/test_approver_perms.py); Postgres RLS second layer still stubbed; worker tokens scoped claim/submit-to-staging only | SEC-004, SEC-008, SEC-012 | 2026-07-17 |
+| V4 | Access control | partial | Server-side role checks per route (User/Approver/Admin); role-based admin perms implemented + tested; Postgres RLS mechanism verified on PG under a non-owner role (tests/test_rls.py, SEC-016) — enforcement flip needs the deploy-side non-owner role; worker tokens scoped claim/submit-to-staging only | SEC-004, SEC-008, SEC-012, SEC-016 | 2026-07-17 |
 | V5 | Validation, sanitization, encoding | planned | JSON Schema on ALL extractor ingest (both modes); parameterized queries only; output encoding via framework templates | SEC-005 | 2026-07-16 |
 | V6 | Stored cryptography | planned | Envelope encryption for tokens + cert numbers; keys in GCP Secret Manager; no custom crypto | SEC-009 | 2026-07-16 |
 | V7 | Error handling & logging | planned | Audit log for Approver/Admin actions; no secrets/PII in logs; structured logs off-box | — | 2026-07-16 |

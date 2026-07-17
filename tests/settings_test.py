@@ -6,7 +6,10 @@ import os
 os.environ.setdefault("DJANGO_SECRET_KEY", "test-only-insecure-key-not-for-prod")
 
 from config.settings import *  # noqa: E402,F403
-DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
+# Fast in-memory sqlite by default; honor DATABASE_URL when set so the Postgres-only RLS
+# suite (SEC-008) can actually run (locally via a throwaway PG, and in the CI postgres job).
+if not os.environ.get("DATABASE_URL"):
+    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]  # test speed only
 # Manifest storage needs a collectstatic pass; tests render admin templates without one.
 STORAGES = {**STORAGES,  # noqa: F405

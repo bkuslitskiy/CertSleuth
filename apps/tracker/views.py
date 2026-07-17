@@ -153,6 +153,13 @@ def ics_feed(request, token):
         user = User.objects.get(ics_token=token)
     except User.DoesNotExist:
         raise Http404
+    # RLS-safety (SEC-008): this view is anonymous, so RLSSessionMiddleware sets no
+    # certsleuth.user_id. Under the non-owner app role the cert query would then return
+    # nothing — scope it to the token's user here. No-op on sqlite / owner connections.
+    from django.db import connection
+    if connection.vendor == "postgresql":
+        with connection.cursor() as cur:
+            cur.execute("SELECT set_config('certsleuth.user_id', %s, false)", [str(user.pk)])
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//CertSleuth//EN",
              "X-WR-CALNAME:CertSleuth expirations"]
     for uc in user.certs.select_related("certification").filter(expiry_date__isnull=False):

@@ -1,0 +1,14 @@
+# Normalize line endings: LF in the repo, auto-converted on checkout per-OS. Stops the
+# "LF will be replaced by CRLF" warnings on Windows checkouts.
+* text=auto eol=lf
+
+# Binary/asset types git must never touch.
+*.png binary
+*.svg text eol=lf
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.sql.gz binary
+
+# Shell scripts must stay LF even on Windows (they run in the Linux container).
+*.sh text eol=lf
