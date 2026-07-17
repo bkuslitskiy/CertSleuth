@@ -73,9 +73,9 @@ class SourceSubmission(models.Model):
     """D16: inert until an Approver triggers the crawl. Untrusted users can't cause spend."""
     class Status(models.TextChoices):
         QUEUED = "queued", "Queued (inert)"
-        # value stays 'crawled' (no migration); label says what actually happened —
-        # promotion to the Source registry + a queued ExtractionJob, not a finished crawl
-        CRAWLED = "crawled", "Promoted — extraction job queued"
+        # value stays 'crawled' (no migration); the action registers the Source and
+        # queues an ExtractionJob — the crawl itself happens when a worker runs
+        CRAWLED = "crawled", "Crawl Queued"
         REJECTED = "rejected", "Rejected"
 
     url = models.URLField(max_length=500)

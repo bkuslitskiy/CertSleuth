@@ -25,6 +25,14 @@ def submit_offer(request):
         offer.submitted_by = request.user
         offer.priority = request.user.is_approver  # D12
         offer.save()
-        messages.success(request, "Offer submitted for review.")
+        # Offer facts affect every user, so the claimed page also enters the
+        # verification queue — inert until an Approver triggers the crawl (SEC-007).
+        from apps.research.models import SourceSubmission
+        SourceSubmission.objects.get_or_create(
+            url=offer.url[:500],
+            defaults={"description": f"Verify free offer: {offer.title}"[:300],
+                      "submitted_by": request.user})
+        messages.success(request, "Offer submitted for review; its page is queued "
+                                  "for a verification crawl.")
         return redirect("offer_list")
     return render(request, "dashboard/submit_offer.html", {"form": form})
