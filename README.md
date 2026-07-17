@@ -54,7 +54,10 @@ Caddyfile, `manage.py migrate` + `setup_schedules` in the web container, nightly
   are built; the OAuth dance itself awaits console credentials (GOOGLE_OAUTH_* in .env,
   docs/gcp-setup.md §2) — implement in apps/tracker/gmail.py when creds exist; it should
   execute *approved* requests only.
-- Deploy: compose stack not yet exercised (needs Docker locally or the GCP VM).
+- Deploy: image + app stack validated locally on Postgres (build, migrate, gunicorn,
+  django-q, DEBUG=false static — via docker-compose.smoke.yml). Remaining: provision the
+  GCP e2-micro and exercise the real docker-compose.yml with Caddy TLS (needs the VM +
+  public DNS) — see docs/gcp-setup.md.
 - Run the preload: extraction worker sessions over the 21 seeded sources.
 
 Done since first boot: initial migrations committed; cert-number encryption
