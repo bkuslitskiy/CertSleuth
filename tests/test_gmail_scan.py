@@ -51,7 +51,8 @@ def test_approver_action_resolves_pending_only(client, enabled_user, approver, r
     request._messages = messages.storage.default_storage(request)
     admin_obj = GmailScanRequestAdmin(GmailScanRequest, admin.site)
     admin_obj.approve_selected(request, GmailScanRequest.objects.all())
-    pending.refresh_from_db(); done.refresh_from_db()
+    pending.refresh_from_db()
+    done.refresh_from_db()
     assert pending.status == GmailScanRequest.Status.APPROVED
     assert pending.resolved_by == approver
     assert done.status == GmailScanRequest.Status.COMPLETED  # untouched
