@@ -55,3 +55,8 @@ Append-only log. Every security-relevant decision gets an entry at decision time
 **Trade-off:** Ongoing bookkeeping discipline; accepted per D18 ("do things right the first time").
 
 ## SEC-011 | (reserved) | ASVS version pin — record at repo kickoff
+
+## SEC-012 | 2026-07-17 | Approver role confers admin review permissions in code
+**Decision:** `User.has_perm`/`has_module_perms` grant approvers (role approver/admin) access to the review surfaces only — research, catalog, offers apps plus accounts.EnrollmentTask. No per-user permission rows or groups; role is the single authorization source of truth. User management stays superuser-only. Unmatched Credly badges enqueue as inert SourceSubmissions (same SEC-007 posture: user input causes no fetch or spend until an Approver triggers the crawl), deduplicated on (url, description) to bound queue-spam.
+**Rationale:** Staff flag alone left approvers with zero model permissions (admin 403s, masked by a URL-only e2e assertion); scattering permission rows per user invites drift from the role field.
+**Trade-off:** Permission granularity is app-level for approvers, not per-model; acceptable while the approver surface is exactly the review queue. Revisit if roles multiply.

@@ -31,6 +31,24 @@ class User(AbstractUser):
     def is_approver(self):
         return self.role in (Role.APPROVER, Role.ADMIN)
 
+    # SEC-012: role, not per-user permission rows, is the authorization source of truth.
+    # Approvers get the review surfaces (staging, sources, offers, enrollment queue);
+    # everything else still requires explicit grants.
+    APPROVER_APPS = ("research", "catalog", "offers")
+
+    def has_module_perms(self, app_label):
+        if self.is_active and self.is_approver and (
+                app_label in self.APPROVER_APPS or app_label == "accounts"):
+            return True
+        return super().has_module_perms(app_label)
+
+    def has_perm(self, perm, obj=None):
+        if self.is_active and self.is_approver:
+            app = perm.split(".", 1)[0]
+            if app in self.APPROVER_APPS or (app == "accounts" and "enrollmenttask" in perm):
+                return True
+        return super().has_perm(perm, obj)
+
 
 class RegistrationMode(models.Model):
     """Singleton toggle (D1): invite-only vs open; waitlist past WAITLIST_THRESHOLD."""

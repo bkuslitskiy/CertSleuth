@@ -42,9 +42,13 @@ def credly_import(request):
     matches = None
     if request.method == "POST" and "confirm" in request.POST:
         import json as _json
-        created = 0
+        from apps.research.models import SourceSubmission
+        created = queued = 0
         for raw in request.POST.getlist("import_badge"):
-            b = _json.loads(raw)
+            try:
+                b = _json.loads(raw)
+            except ValueError:
+                continue
             if not b.get("cert_id"):
                 continue
             _, was_new = UserCertification.objects.get_or_create(
@@ -53,7 +57,25 @@ def credly_import(request):
                           "expiry_date": b.get("expires") or None,
                           "import_source": "credly"})
             created += was_new
-        messages.success(request, f"Imported {created} certification(s).")
+        # Badges with no catalog match become inert research submissions (D16):
+        # an Approver decides whether the cert is worth adding to the catalog.
+        for raw in request.POST.getlist("queue_badge"):
+            try:
+                b = _json.loads(raw)
+            except ValueError:
+                continue
+            name = (b.get("badge") or "").strip()
+            if not name:
+                continue
+            _, was_new = SourceSubmission.objects.get_or_create(
+                url=(b.get("template_url") or form.data.get("profile_url", ""))[:500],
+                description=f"Credly badge with no catalog match: {name}"[:300],
+                defaults={"submitted_by": request.user})
+            queued += was_new
+        msg = f"Imported {created} certification(s)."
+        if queued:
+            msg += f" Queued {queued} unmatched badge(s) for research."
+        messages.success(request, msg)
         return redirect("dashboard")
     if request.method == "POST" and form.is_valid():
         try:

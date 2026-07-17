@@ -25,5 +25,6 @@ def match_badges(badges: list[dict]) -> list[dict]:
         cert = (Certification.objects.filter(external_ids__credly_template=tid).first()
                 or Certification.objects.filter(name__iexact=tname).first())
         out.append({"badge": tname, "issued": b.get("issued_at_date"),
-                    "expires": b.get("expires_at_date"), "cert": cert})
+                    "expires": b.get("expires_at_date"), "cert": cert,
+                    "template_id": tid, "template_url": template.get("url", "")})
     return out

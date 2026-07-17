@@ -10,4 +10,6 @@ test("approver sees review queue link and staging admin loads", async ({ page })
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.getByRole("link", { name: "Review queue" }).click();
   await expect(page).toHaveURL(/stagedchange/);
+  // URL alone can mask a 403 — the changelist itself must render (SEC-012).
+  await expect(page.getByRole("heading", { name: /select staged change/i })).toBeVisible();
 });

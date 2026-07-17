@@ -15,10 +15,12 @@
   {% for m in matches %}
   <tr>
     <td>{% if m.cert %}<input type="checkbox" name="import_badge" checked
-        value='{"cert_id": {{ m.cert.pk }}, "issued": "{{ m.issued|default:"" }}", "expires": "{{ m.expires|default:"" }}"}'>{% endif %}</td>
+        value='{"cert_id": {{ m.cert.pk }}, "issued": "{{ m.issued|default:"" }}", "expires": "{{ m.expires|default:"" }}"}'>
+        {% else %}<input type="checkbox" name="queue_badge" checked
+        value='{"badge": "{{ m.badge|escapejs }}", "template_id": "{{ m.template_id|escapejs }}", "template_url": "{{ m.template_url|escapejs }}"}'>{% endif %}</td>
     <td>{{ m.badge }}</td><td class="num">{{ m.issued }}</td>
     <td class="num">{{ m.expires|default:"—" }}</td>
-    <td>{{ m.cert|default:"no match — add manually" }}</td>
+    <td>{% if m.cert %}{{ m.cert }}{% else %}no match — queue for research{% endif %}</td>
   </tr>
   {% endfor %}
 </table></div>
