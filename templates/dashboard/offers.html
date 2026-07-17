@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Free offers</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% for o in offers %}<div class="card"><a href="{{ o.url }}" rel="noopener">{{ o.title }}</a>
+  <p>{{ o.description }}</p>{% if o.ends %}<span class="conf">ends {{ o.ends }}</span>{% endif %}</div>
+{% empty %}<p class="empty">Nothing active. Free offers are intermittent — check back, or submit one you've spotted.</p>{% endfor %}
+<a class="btn" href="{% url 'submit_offer' %}">Submit an offer</a>
+{% endblock %}

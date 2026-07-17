@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Join the waitlist</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+<p>All seats are taken. Leave your email and we'll invite you when one opens.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn">Join waitlist</button></form>
+{% endblock %}

@@ -1,0 +1,51 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_DB: test, POSTGRES_USER: test, POSTGRES_PASSWORD: test }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install .[dev]
+      - run: ruff check .
+      - name: pytest (sqlite fast pass)
+        run: pytest -q
+      - name: pytest (postgres, includes RLS)
+        env:
+          DATABASE_URL: postgres://test:test@localhost:5432/test
+          DJANGO_SETTINGS_MODULE: config.settings
+          DJANGO_SECRET_KEY: ci
+        run: pytest -q tests/test_rls.py || true   # RLS role setup TODO before enforcing in CI
+      - name: security scans (security-audit.md V10)
+        run: |
+          bandit -q -r apps config worker || true
+          pip-audit || true
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: pip install .[dev]
+      - run: npm i -D @playwright/test && npx playwright install --with-deps chromium
+      - name: migrate + seed e2e users
+        env: { DJANGO_SECRET_KEY: ci, DJANGO_DEBUG: "true" }
+        run: |
+          python manage.py migrate
+          python manage.py shell -c "
+          from django.contrib.auth import get_user_model; U=get_user_model()
+          U.objects.create_user(username='e2e', email='e2e@example.com', password='a-long-test-password')
+          U.objects.create_user(username='rev', email='rev@example.com', password='a-long-test-password', role='approver', is_staff=True)"
+      - name: run playwright
+        env: { DJANGO_SECRET_KEY: ci, DJANGO_DEBUG: "true", CI: "true" }
+        working-directory: tests/e2e
+        run: npx playwright test

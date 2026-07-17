@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Enable inbox scanning</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% if task %}<p>Status: {{ task.get_status_display }}. Scanning unlocks when enrollment is confirmed.</p>
+{% else %}
+<p>Inbox scanning finds certification emails in your Gmail with a one-time, read-only scan.
+Your account must first be enrolled by an administrator (a Google requirement) — request it here.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn">Request enrollment</button></form>
+{% endif %}
+{% endblock %}

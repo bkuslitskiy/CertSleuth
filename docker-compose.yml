@@ -1,0 +1,29 @@
+# e2-micro layout (D9): everything on one box, Postgres tuned small.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: certsleuth
+      POSTGRES_USER: certsleuth
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    command: postgres -c shared_buffers=128MB -c max_connections=30
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    restart: unless-stopped
+  web:
+    build: .
+    env_file: .env
+    depends_on: [db]
+    restart: unless-stopped
+  qcluster:
+    build: .
+    env_file: .env
+    command: python manage.py qcluster
+    depends_on: [db]
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile", "caddy_data:/data"]
+    depends_on: [web]
+    restart: unless-stopped
+volumes: { pgdata: {}, caddy_data: {} }

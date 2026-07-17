@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Your certifications</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% if held %}
+<div class="card"><table>
+  <tr><th>Certification</th><th>Expires</th><th>Cert #</th><th>Rule freshness</th><th>Confidence</th><th></th></tr>
+  {% for uc in held %}
+  <tr>
+    <td>{{ uc.certification }}</td>
+    <td class="num">{{ uc.expiry_date|default:"—" }}</td>
+    <td class="num">{{ uc.cert_number|default:"—" }}</td>
+    <td><span class="chip {{ uc.chip }}" title="Last verified: {{ uc.rule.last_verified_at|default:'never' }}"></span></td>
+    <td class="conf">{{ uc.rule.confidence|default:"—" }}</td>
+    <td><form method="post" action="{% url 'report_outdated' 'renewal_rule' uc.rule.pk|default:0 %}">
+        {% csrf_token %}<button class="btn quiet" {% if not uc.rule %}disabled{% endif %}>Report outdated</button></form></td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}
+<p class="empty">No certifications yet. Add one below, or import from Credly in seconds.</p>
+{% endif %}
+<p>
+  <a class="btn" href="{% url 'add_cert' %}">Add a certification</a>
+  <a class="btn quiet" href="{% url 'credly_import' %}">Import from Credly</a>
+  {% if user.gmail_scan_enabled %}<a class="btn quiet" href="#">Scan my inbox</a>
+  {% else %}<a class="btn quiet" href="{% url 'gmail_enrollment' %}">Enable inbox scanning</a>{% endif %}
+</p>
+<h2>Calendar feed</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+<p class="data">Subscribe: {{ request.scheme }}://{{ request.get_host }}{% url 'ics_feed' user.ics_token %}</p>
+<h2>Active free offers</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% for o in offers %}<div class="card"><a href="{{ o.url }}" rel="noopener">{{ o.title }}</a>
+  {% if o.ends %}<span class="conf"> ends {{ o.ends }}</span>{% endif %}</div>
+{% empty %}<p class="empty">No active offers right now. Spot one? Submit it from the Offers page.</p>{% endfor %}
+<h2>Recent activity</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% for a in recent %}<div class="card">{{ a.title }} <span class="num">{{ a.hours }}h · {{ a.date }}</span></div>
+{% empty %}<p class="empty">No CEU activity logged yet.</p>{% endfor %}
+{% endblock %}

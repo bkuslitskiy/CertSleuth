@@ -1,0 +1,16 @@
+.env
+db.sqlite3
+staticfiles/
+__pycache__/
+*.pyc
+jobs/
+results.jsonl
+node_modules/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+*.sql.gz
+.DS_Store

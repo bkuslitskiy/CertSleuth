@@ -1,0 +1,33 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CertSleuth{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/certsleuth.css' %}">
+  <script src="{% static 'js/theme.js' %}" defer></script>
+</head>
+<body>
+<header class="site">
+  <span class="wordmark"><span class="c">Cert</span><span class="s">Sle</span><span class="u">uth</span></span>
+  {% if user.is_authenticated %}
+  <nav>
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'offer_list' %}">Free offers</a>
+    <a href="{% url 'add_activity' %}">Log activity</a>
+    <a href="{% url 'submit_source' %}">Suggest a source</a>
+    {% if user.is_approver %}<a href="/admin/research/stagedchange/?status__exact=pending">Review queue</a>{% endif %}
+  </nav>
+  {% endif %}
+  <span class="spacer"></span>
+  <button id="theme-toggle" class="btn quiet" type="button">Theme</button>
+  {% if user.is_authenticated %}
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn quiet">Sign out</button></form>
+  {% endif %}
+</header>
+<main>
+  {% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

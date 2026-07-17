@@ -1,0 +1,7 @@
+certsleuth.com {
+    reverse_proxy web:8000
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}
+www.certsleuth.com {
+    redir https://certsleuth.com{uri} permanent
+}

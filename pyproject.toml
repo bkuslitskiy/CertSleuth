@@ -1,0 +1,18 @@
+[project]
+name = "certsleuth"
+version = "0.1.0"
+description = "Multi-provider certification tracker: renewals, CEUs, upgrade paths, free offers"
+requires-python = ">=3.12"
+dependencies = [
+  "django>=5.1,<6",
+  "psycopg[binary]>=3.2",
+  "django-q2>=1.7",          # DB-brokered jobs; no Redis on the 1GB VM
+  "pydantic>=2.8",           # extraction schemas, shared with worker
+  "httpx>=0.27",             # fetcher + Credly import
+  "whitenoise>=6.7",         # static files without a CDN
+  "django-environ>=0.11",
+  "argon2-cffi>=23.1",
+  "cryptography>=43",
+]
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-django>=4.8", "bandit>=1.7", "pip-audit>=2.7", "ruff>=0.5"]

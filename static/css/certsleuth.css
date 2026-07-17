@@ -1,0 +1,72 @@
+/* CertSleuth — dark default, creamy off-white lettering, RGB tri-signature.
+   The RGB segments aren't decoration: red/green also carry staleness semantics,
+   blue is the interactive color. The wordmark teaches the system's color language. */
+:root, [data-theme="dark"] {
+  --bg: #17191e; --surface: #1f222a; --line: #2c303a;
+  --ink: #f2ede1;            /* creamy off-white lettering (brief) */
+  --ink-dim: #b8b2a4;
+  --r: #e5484d; --g: #46a758; --b: #4c7df0; --y: #f0b429;
+  --chip-ink: #17191e;
+}
+[data-theme="light"] {
+  --bg: #f5f1e8; --surface: #ffffff; --line: #ddd6c8;
+  --ink: #23252b; --ink-dim: #6b675c;
+  --r: #c73437; --g: #2f7d3f; --b: #2f5fd0; --y: #b07d0a;
+  --chip-ink: #f5f1e8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.55 system-ui, "Segoe UI", sans-serif;
+}
+a { color: var(--b); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--b); outline-offset: 2px; }
+
+/* Wordmark: the signature. Cert / Sle / uth in R / G / B. */
+.wordmark { font-weight: 800; font-size: 1.35rem; letter-spacing: .02em; }
+.wordmark .c { color: var(--r); } .wordmark .s { color: var(--g); } .wordmark .u { color: var(--b); }
+
+/* Tri-bar: 3-segment rule echoing the wordmark; used under section headings. */
+.tribar { display: flex; height: 3px; margin: .35rem 0 1rem; max-width: 9rem; }
+.tribar span { flex: 1; } .tribar span:nth-child(1) { background: var(--r); }
+.tribar span:nth-child(2) { background: var(--g); } .tribar span:nth-child(3) { background: var(--b); }
+
+header.site { display: flex; align-items: center; gap: 1.5rem; padding: .9rem 1.4rem;
+  border-bottom: 1px solid var(--line); background: var(--surface); }
+header.site nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+header.site nav a { color: var(--ink-dim); }
+header.site nav a[aria-current="page"] { color: var(--ink); }
+.spacer { flex: 1; }
+main { max-width: 62rem; margin: 0 auto; padding: 1.5rem 1.4rem 4rem; }
+h1, h2 { font-weight: 700; letter-spacing: -.01em; margin: 1.4rem 0 .2rem; }
+h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 1rem 1.15rem; margin: .6rem 0; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; color: var(--ink-dim); font-weight: 600; font-size: .8rem;
+  text-transform: uppercase; letter-spacing: .06em; padding: .45rem .6rem; }
+td { padding: .55rem .6rem; border-top: 1px solid var(--line); }
+.num, .data { font-family: ui-monospace, "Cascadia Mono", monospace; font-size: .92em; }
+
+/* Staleness chips (D3): same red/green as the wordmark; yellow between. */
+.chip { display: inline-block; min-width: .65rem; height: .65rem; border-radius: 50%;
+  vertical-align: baseline; }
+.chip.green { background: var(--g); } .chip.yellow { background: var(--y); }
+.chip.red { background: var(--r); }
+.conf { font-size: .75rem; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .05em; }
+
+.btn { display: inline-block; background: var(--b); color: #fff; border: 0; border-radius: 8px;
+  padding: .55rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+.btn.quiet { background: transparent; color: var(--b); border: 1px solid var(--line); }
+form p { margin: .7rem 0; } label { display: block; color: var(--ink-dim); font-size: .85rem; }
+input, select, textarea { width: 100%; max-width: 26rem; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: .5rem .65rem; font: inherit; }
+.messages { list-style: none; padding: 0; } .messages li { border-left: 3px solid var(--g);
+  background: var(--surface); padding: .6rem .9rem; margin: .5rem 0; border-radius: 0 8px 8px 0; }
+.empty { color: var(--ink-dim); padding: 1.2rem 0; }
+@media (max-width: 640px) { header.site { flex-wrap: wrap; } main { padding: 1rem; } }
+@media (prefers-reduced-motion: no-preference) {
+  .chip { transition: transform .15s; } tr:hover .chip { transform: scale(1.25); }
+}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Add a certification</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn">Save</button>
+</form>
+{% if matches %}<h2>Found on your profile</h2>
+<div class="card"><table><tr><th>Badge</th><th>Issued</th><th>Expires</th><th>Catalog match</th></tr>
+{% for m in matches %}<tr><td>{{ m.badge }}</td><td class="num">{{ m.issued }}</td>
+<td class="num">{{ m.expires|default:"—" }}</td><td>{{ m.cert|default:"no match — add manually" }}</td></tr>{% endfor %}
+</table></div>{% endif %}
+{% if report %}<div class="card">Staged {{ report.staged }} facts.
+{% for e in report.errors %}<p class="conf">{{ e }}</p>{% endfor %}</div>{% endif %}
+{% endblock %}
