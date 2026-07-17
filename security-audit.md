@@ -21,7 +21,7 @@ Review cadence: touch this file in every PR that lands security-relevant code; f
 | V11 | Business logic | partial | Crawl-on-demand gate for community sources (SEC-007) verified in code + tests (offer/badge/source submissions all inert; spend triggers approver-only per SEC-013 audit); waitlist cap logic; lease TTL on job claims | SEC-007, SEC-013 | 2026-07-17 |
 | V12 | Files & resources | planned | Transient-only upload parsing (SEC-001); signed short-lived URLs if any object access; upload size/type limits | SEC-001 | 2026-07-16 |
 | V13 | API & web service | planned | Worker API: per-worker tokens, least scope, rate limits; ingest schema-validated; no server-initiated outbound to operator network (SEC-004) | SEC-004, SEC-005 | 2026-07-16 |
-| V14 | Configuration | planned | No secrets in repo/images/env-committed files; least-privilege GCP IAM; ZAP self-DAST against staging per release | SEC-009 | 2026-07-16 |
+| V14 | Configuration | partial | No secrets in repo (gitignore) or images (.dockerignore excludes .env, verified via smoke test — SEC-014); least-privilege GCP IAM and ZAP self-DAST still planned | SEC-009, SEC-014 | 2026-07-17 |
 
 ## Assessment-readiness checklist (maintain continuously — D18)
 - [ ] Every `implemented` row has linked evidence (PR, config, test)

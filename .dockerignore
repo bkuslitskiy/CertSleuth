@@ -1,0 +1,32 @@
+# Secrets — must never enter image layers (SEC-009/SEC-014)
+.env
+.env.*
+
+# Virtualenvs (Windows .venv is broken inside a Linux image) + node deps
+.venv/
+venv/
+node_modules/
+tests/e2e/node_modules/
+tests/e2e/playwright-report/
+tests/e2e/test-results/
+
+# VCS, CI, editor, local tooling
+.git/
+.github/
+.claude/
+.gitattributes
+
+# Python caches / build artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Local DB, collected static (regenerated in build), backups
+db.sqlite3
+staticfiles/
+*.sql.gz
+.DS_Store
+docker-compose.smoke.yml
+docker-compose.yml

@@ -16,3 +16,6 @@ test-results/
 .DS_Store
 *.egg-info/
 .claude/settings.local.json
+
+# local smoke-test stack (not for deploy)
+docker-compose.smoke.yml
