@@ -19,6 +19,9 @@ SAMPLES = [
     {"job_id": 3, "kind": "certification", "extractor": "claude-code-local",
      "payload": {"provider_slug": "aws", "slug": "saa", "name": "Solutions Architect Associate",
                  "exam_cost_usd": 150, "validity_years": 3}},
+    {"job_id": 4, "kind": "upgrade_path", "extractor": "claude-code-local",
+     "payload": {"provider_slug": "scrum-alliance", "from_certification_slug": "csm",
+                 "to_certification_slug": "a-csm", "effect": "requires"}},
 ]
 
 

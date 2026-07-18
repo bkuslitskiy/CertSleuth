@@ -12,6 +12,11 @@ Append to `results.jsonl`, one JSON object per extracted fact:
  "payload": {...}, "extractor": "claude-code-local", "snapshot_hash": "<from manifest>"}
 
 Payload fields per kind: see `schema.py` in this directory. Rules:
+- upgrade_path effect vocabulary: "renews" | "waives_fee" | "supersedes" | "requires".
+  Direction: earning `to_certification_slug` acts on `from_certification_slug`.
+  "requires" = prerequisite (A-CSM requires CSM -> from=csm, to=a-csm). Emit it when the
+  page states an eligibility requirement, NOT when one cert merely ranks above another —
+  tier is the `level` field on certification facts, a separate axis.
 - Extract ONLY what the page states. Missing field -> null/omit. NEVER guess numbers.
 - confidence: "confirmed" only if the page is the provider's own policy/handbook;
   "commonly_accepted" for reputable secondary sources; "inferred" if you had to derive it.

@@ -100,6 +100,10 @@ class UpgradePath(models.Model):
         RENEWS = "renews", "Renews"
         WAIVES_FEE = "waives_fee", "Waives fee"
         SUPERSEDES = "supersedes", "Supersedes"
+        # to_cert REQUIRES from_cert as a prerequisite (A-CSM requires CSM). Distinct
+        # from tier: Network+ is a lower CompTIA tier than Security+ but not required
+        # by it — providers wire these differently, so it's an edge, not an inference.
+        REQUIRES = "requires", "Requires (prerequisite)"
 
     from_cert = models.ForeignKey(Certification, on_delete=models.CASCADE, related_name="upgrade_edges_in")
     to_cert = models.ForeignKey(Certification, on_delete=models.CASCADE, related_name="upgrade_edges_out")

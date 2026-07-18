@@ -18,7 +18,7 @@ def validate_line(obj):
         assert p.get("provider_slug") and p.get("certification_slug"), "slugs required"
         assert p.get("confidence", "commonly_accepted") in CONF
     if obj["kind"] == "upgrade_path":
-        assert p.get("effect") in {"renews", "waives_fee", "supersedes"}
+        assert p.get("effect") in {"renews", "waives_fee", "supersedes", "requires"}
     if obj["kind"] == "certification":
         assert p.get("provider_slug") and p.get("slug") and p.get("name")
     if obj["kind"] == "free_offer":

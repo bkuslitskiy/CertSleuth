@@ -22,7 +22,7 @@ class UpgradePathPayload(BaseModel):
     provider_slug: str
     from_certification_slug: str
     to_certification_slug: str
-    effect: Literal["renews", "waives_fee", "supersedes"]
+    effect: Literal["renews", "waives_fee", "supersedes", "requires"]
     confidence: Literal["confirmed", "commonly_accepted", "inferred"] = "commonly_accepted"
 
 
