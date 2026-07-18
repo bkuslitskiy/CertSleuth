@@ -40,15 +40,16 @@ can be deleted along with `crawl-procedure`.
 
 ## Local DB state (NOT in git — lives in db.sqlite3)
 
-This is the output of the crawl/extraction runs, left in place for review:
-- **76 staged facts pending** at `/admin/research/stagedchange/?status__exact=pending`
-  (9 SA renewal rules + 67 certifications). Providers: Scrum Alliance, ISC2, Google Cloud,
-  Google Career, and the recovered GIAC / CompTIA / ISACA / AWS catalogs (`extractor` tag
-  `per-provider-og`). **These are unreviewed — Boris should approve/reject.**
-- 17 approved staged changes (the original Scrum Alliance sample, already in catalog).
-- **93 crawl-discovered submissions still queued (inert)** at
+This is the output of the crawl/extraction runs:
+- **All 93 staged changes approved & published** (Boris approved the pending batch
+  2026-07-18). They are now the canonical catalog: **68 certifications** at
+  `/admin/catalog/certification/` and **16 renewal rules** at `/admin/catalog/renewalrule/`
+  — Scrum Alliance, ISC2, Google Cloud/Career, and the recovered GIAC / CompTIA / ISACA /
+  AWS catalogs. The approval records (audit trail) are at
+  `/admin/research/stagedchange/?status__exact=approved`. The pending review queue is empty.
+- **~94 crawl-discovered submissions still queued (inert)** at
   `/admin/research/sourcesubmission/?origin__exact=crawl` — deeper cert pages, depth 2,
-  awaiting approver promotion.
+  awaiting approver promotion. (This is the long URL queue, distinct from the facts above.)
 - 320 sources: 107 active, 201 hub, 9 dead, 2 barren, 1 needs_render.
 
 ## What was built this session (by theme)
@@ -97,7 +98,7 @@ This is the output of the crawl/extraction runs, left in place for review:
   Alliance has a clean one so far; most seed URLs are overview pages (many were stale/404).
 
 **Needs Boris (credentials/accounts/decisions):**
-- Review & approve the 76 staged facts.
+- (Done 2026-07-18: reviewed & approved the staged facts — now in the catalog.)
 - Google OAuth creds (`GOOGLE_OAUTH_*`) → unblocks Gmail scan execution (docs/gcp-setup.md §2).
 - Email provider SMTP (`EMAIL_URL`) → invites/reminders.
 - Anthropic API key → steady-state server extraction (preload doesn't need it — that's Claude Code).
