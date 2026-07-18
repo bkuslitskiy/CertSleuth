@@ -60,8 +60,10 @@ Caddyfile, `manage.py migrate` + `setup_schedules` in the web container, nightly
   django-q, DEBUG=false static — via docker-compose.smoke.yml). Remaining: provision the
   GCP e2-micro and exercise the real docker-compose.yml with Caddy TLS (needs the VM +
   public DNS) — see docs/gcp-setup.md.
-- LinkedIn CSV importer: built against LinkedIn's documented columns; verify exact headers
-  against a real export before relying on it (importers.linkedin_parse).
+- ~~LinkedIn CSV importer: verify exact headers~~ — verified against a real full-profile
+  export 2026-07-18; headers match exactly. Open enhancement: the importer drops
+  `Authority` (issuer — could aid provider matching) and `License Number` (could fill the
+  encrypted cert_number field, SEC-009).
 - Run the preload: extraction worker sessions over the 21 seeded sources.
 
 Done since first boot: initial migrations; cert-number encryption (SEC-009); django-q

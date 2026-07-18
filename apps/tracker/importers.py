@@ -235,9 +235,11 @@ def _linkedin_date(value):
 
 
 def linkedin_parse(form):
-    """Parse Certifications.csv from a LinkedIn data export. Column names per LinkedIn's
-    documented export (Name, Url, Authority, Started On, Finished On, License Number);
-    verify against a real export before relying on exact headers."""
+    """Parse Certifications.csv from a LinkedIn data export. Column headers verified
+    against a real full-profile export 2026-07-18: exactly
+    (Name, Url, Authority, Started On, Finished On, License Number).
+    Note: the full-profile export is the only way to get this file and LinkedIn takes
+    hours-to-days to deliver it — don't design flows that assume quick re-export."""
     f = form.cleaned_data["csv_file"]
     text = f.read().decode("utf-8-sig", "replace")
     reader = csv.DictReader(io.StringIO(text))

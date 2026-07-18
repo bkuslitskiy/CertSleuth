@@ -19,3 +19,7 @@ test-results/
 
 # local smoke-test stack (not for deploy)
 docker-compose.smoke.yml
+
+# Personal credential exports (PII) — never commit (SEC: operator-local test data)
+Certifications.csv
+*.linkedin-export.csv
