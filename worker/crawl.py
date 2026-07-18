@@ -13,6 +13,8 @@ from urllib.parse import urljoin, urlparse, urlunparse
 PATH_KEYWORDS = ("renew", "recert", "cpe", "ceu", "pdu", "maintain",
                  "certification", "cert", "policy", "credential")
 
+_SCRIPT_STYLE_RE = re.compile(r'<(script|style)\b[^>]*>.*?</\1>', re.I | re.S)
+_TAG_RE = re.compile(r'<[^>]+>')
 _HREF_RE = re.compile(r'<a\b[^>]*\bhref=["\']([^"\'#]+)', re.I)
 _CANON_RE = re.compile(
     r'<link\b[^>]*\brel=["\']canonical["\'][^>]*\bhref=["\']([^"\']+)|'
@@ -41,6 +43,14 @@ def normalize(url):
 def dedupe_key(url, canonical=""):
     """Canonical URL if the page declares one; else the normalized URL."""
     return normalize(canonical or url)
+
+
+def visible_text_len(html):
+    """Rough count of visible (non-markup, non-script) characters. A JS-rendered shell
+    returns a small number even on a 200 — the signal for 'needs_render' vs 'barren'."""
+    t = _SCRIPT_STYLE_RE.sub(" ", html)
+    t = _TAG_RE.sub(" ", t)
+    return len(" ".join(t.split()))
 
 
 def extract_canonical(html, base_url):

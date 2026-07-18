@@ -51,6 +51,43 @@ def _robots_fetch(robots_url):
         return None  # missing/unreadable robots -> fail open
 
 
+def _post_report(api, job_id, report):
+    """Send fetch metadata + discovered links to the server (SEC-017: app adds to queue)."""
+    try:
+        _req(f"{api}/api/worker/jobs/{job_id}/fetch-report", data=json.dumps(report).encode())
+    except Exception as e:
+        print(f"job {job_id}: fetch-report failed: {e}", file=sys.stderr)
+
+
+def _fetch_one(url, prior):
+    """Fetch one page (conditional, polite). Returns (server_report, snapshot_bytes|None)."""
+    if not crawl.robots_allows(url, fetcher=_robots_fetch):
+        print(f"robots.txt disallows {url}", file=sys.stderr)
+        return {"http_status": "robots_disallowed"}, None
+    headers = {"User-Agent": USER_AGENT}
+    if prior.get("etag"):
+        headers["If-None-Match"] = prior["etag"]
+    if prior.get("last_modified"):
+        headers["If-Modified-Since"] = prior["last_modified"]
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            content = resp.read()
+            etag, last_mod = resp.headers.get("ETag", ""), resp.headers.get("Last-Modified", "")
+    except urllib.error.HTTPError as e:
+        if e.code == 304:
+            return {"unchanged": True}, None            # conditional-fetch hit
+        return {"http_status": e.code}, None
+    except Exception:
+        return {"http_status": "error"}, None
+    text = content.decode("utf-8", "replace")
+    return ({"http_status": 200, "etag": etag, "last_modified": last_mod,
+             "snapshot_hash": hashlib.sha256(content).hexdigest(),
+             "canonical": crawl.extract_canonical(text, url),
+             "discovered_links": crawl.scan_links(text, url),
+             "text_len": crawl.visible_text_len(text)}, content)
+
+
 def fetch(api, n):
     jobs = _req(f"{api}/api/worker/jobs/claim?n={n}")["jobs"]
     outdir = pathlib.Path("jobs")
@@ -60,47 +97,21 @@ def fetch(api, n):
     for i, j in enumerate(jobs):
         if i:
             time.sleep(CRAWL_DELAY_SECONDS)
-        url = j["source_url"]
-        if not crawl.robots_allows(url, fetcher=_robots_fetch):
-            print(f"job {j['job_id']}: robots.txt disallows {url}", file=sys.stderr)
-            manifest.append({**j, "http_status": "robots_disallowed"})
-            continue
-        # Conditional GET: skip pages unchanged since the last crawl.
-        headers = {"User-Agent": USER_AGENT}
-        if j.get("etag"):
-            headers["If-None-Match"] = j["etag"]
-        if j.get("last_modified"):
-            headers["If-Modified-Since"] = j["last_modified"]
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                content = resp.read()
-                etag = resp.headers.get("ETag", "")
-                last_mod = resp.headers.get("Last-Modified", "")
-        except urllib.error.HTTPError as e:
-            if e.code == 304:  # Not Modified -> conditional-fetch hit, skip extraction
-                manifest.append({**j, "unchanged": True})
-                continue
-            print(f"job {j['job_id']}: fetch failed: HTTP {e.code}", file=sys.stderr)
-            manifest.append({**j, "http_status": e.code})
-            continue
-        except Exception as e:
-            print(f"job {j['job_id']}: fetch failed: {e}", file=sys.stderr)
-            manifest.append({**j, "http_status": "error"})
-            continue
-        text = content.decode("utf-8", "replace")
-        snap = outdir / f"{j['job_id']}.html"
-        snap.write_bytes(content)
-        snapped += 1
-        manifest.append({**j, "snapshot": str(snap),
-                         "snapshot_hash": hashlib.sha256(content).hexdigest(),
-                         "http_status": 200, "etag": etag, "last_modified": last_mod,
-                         "canonical": crawl.extract_canonical(text, url),
-                         "discovered_links": crawl.scan_links(text, url)})
+        report, content = _fetch_one(j["source_url"], j)
+        entry = {**j, **report}
+        if content is not None:
+            snap = outdir / f"{j['job_id']}.html"
+            snap.write_bytes(content)
+            entry["snapshot"] = str(snap)
+            snapped += 1
+        elif report.get("http_status") not in (None,) and not report.get("unchanged"):
+            print(f"job {j['job_id']}: {report.get('http_status')}", file=sys.stderr)
+        _post_report(api, j["job_id"], report)          # app adds discovered links to queue
+        manifest.append(entry)
     (outdir / "jobs.jsonl").write_text("\n".join(json.dumps(m) for m in manifest))
     total_links = sum(len(m.get("discovered_links", [])) for m in manifest)
     print(f"claimed {len(jobs)}, snapshotted {snapped}, discovered {total_links} "
-          f"same-domain links -> jobs/jobs.jsonl")
+          f"same-domain links (queued for review) -> jobs/jobs.jsonl")
 
 
 def submit(api, results_path):

@@ -74,3 +74,10 @@ def test_robots_allows_with_injected_fetcher():
 def test_robots_fails_open_when_missing():
     crawl._ROBOTS_CACHE.clear()
     assert crawl.robots_allows("https://x.org/anything", fetcher=lambda u: None)
+
+
+def test_visible_text_len_ignores_markup_and_scripts():
+    shell = '<html><head><script>var x=' + 'a' * 5000 + ';</script></head><body></body></html>'
+    assert crawl.visible_text_len(shell) < 20            # JS-heavy shell -> tiny visible text
+    real = '<p>' + 'word ' * 200 + '</p>'
+    assert crawl.visible_text_len(real) > 500

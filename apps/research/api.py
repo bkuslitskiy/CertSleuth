@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from pydantic import ValidationError
+from . import discovery
 from .models import ExtractionJob, StagedChange, WorkerToken
 from .schemas import ExtractionResult
 
@@ -79,4 +80,33 @@ def submit_result(request, job_id: int):
     job.completed_at = timezone.now()
     job.snapshot_hash = results[0].get("snapshot_hash", "") if results else ""
     job.save(update_fields=["status", "completed_at", "snapshot_hash"])
+    # Facts staged -> the source is 'active' on the normal cadence (SEC-017); overrides
+    # any hub/barren set by the fetch report.
+    if staged:
+        src = job.source
+        src.status = src.Status.ACTIVE
+        src.cadence_days = src.CADENCE_BY_STATUS["active"]
+        src.last_yield_count = staged
+        src.last_yield_at = timezone.now()
+        src.save(update_fields=["status", "cadence_days", "last_yield_count", "last_yield_at"])
     return JsonResponse({"staged": staged})
+
+
+@csrf_exempt
+@require_POST
+def fetch_report(request, job_id: int):
+    """SEC-017: the worker reports fetch metadata + same-domain discovered links (no raw
+    HTML). We classify the source for cadence and enqueue links as inert submissions."""
+    tok = _auth(request)
+    if not tok:
+        return HttpResponseForbidden()
+    try:
+        job = ExtractionJob.objects.get(pk=job_id, leased_by=tok.name)
+    except ExtractionJob.DoesNotExist:
+        return JsonResponse({"error": "unknown or unleased job"}, status=404)
+    try:
+        report = json.loads(request.body)
+    except json.JSONDecodeError as e:
+        return JsonResponse({"error": str(e)}, status=422)
+    status, queued = discovery.apply_fetch_report(job.source, report)
+    return JsonResponse({"status": status, "queued": queued})
