@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ cert.name }} — CertSleuth{% endblock %}
+{% block content %}
+<p><a href="{% url 'catalog_provider' cert.provider.slug %}">&larr; {{ cert.provider.name }}</a></p>
+<h1>{{ cert.name }}</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+
+<div class="card">
+  <table>
+    <tr><th>Level</th><td>{{ cert.level|default:"—" }}</td></tr>
+    <tr><th>Exam cost</th><td class="num">{% if cert.exam_cost_usd %}${{ cert.exam_cost_usd }}{% else %}—{% endif %}</td></tr>
+    <tr><th>Validity</th><td class="num">{% if cert.validity_years %}{{ cert.validity_years }} years{% elif rule.cycle_years %}{{ rule.cycle_years }} years{% else %}—{% endif %}</td></tr>
+    <tr><th>Renewal</th>
+      <td class="num">{% if rule.ceu_required %}{{ rule.ceu_required }} {{ compat.ceu_currency }}{% if rule.cycle_years %} per {{ rule.cycle_years }}-year cycle{% endif %}{% elif rule.cycle_years %}re-exam every {{ rule.cycle_years }} years{% else %}no rule on file yet{% endif %}
+        <span class="chip {{ chip }}" title="Last verified: {{ rule.last_verified_at|default:'never' }}"></span>
+        <span class="conf">{{ rule.confidence|default:"" }}</span></td></tr>
+    {% if rule.renewal_fee_usd or rule.annual_fee_usd %}
+    <tr><th>Fees</th><td class="num">{% if rule.renewal_fee_usd %}${{ rule.renewal_fee_usd }} per cycle{% endif %}
+      {% if rule.annual_fee_usd %}${{ rule.annual_fee_usd }}/yr maintenance{% endif %}</td></tr>
+    {% endif %}
+  </table>
+</div>
+
+<h2>Compatibility with your certifications</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% if compat.holds_it %}
+<div class="card" data-compat="held">You already hold this certification. <span class="chip green"></span></div>
+{% endif %}
+{% if compat.renews_yours %}
+<div class="card" data-compat="renews-yours">
+  Earning this renews your
+  {% for c in compat.renews_yours %}<strong>{{ c.name }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}.
+</div>
+{% endif %}
+{% if compat.waives_fee_for %}
+<div class="card" data-compat="waives-fee">
+  Earning this waives the renewal fee for your
+  {% for c in compat.waives_fee_for %}<strong>{{ c.name }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}.
+</div>
+{% endif %}
+{% if compat.supersedes_yours %}
+<div class="card" data-compat="supersedes">
+  This supersedes your
+  {% for c in compat.supersedes_yours %}<strong>{{ c.name }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}.
+</div>
+{% endif %}
+{% if compat.prereqs_met %}
+<div class="card" data-compat="prereq-met">
+  This requires
+  {% for c in compat.prereqs_met %}<strong>{{ c.name }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}
+  — which you already hold, so you qualify.
+</div>
+{% endif %}
+{% if compat.required_by_yours %}
+<div class="card" data-compat="required-by-yours">
+  Your
+  {% for c in compat.required_by_yours %}<strong>{{ c.name }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}
+  already required this certification — earning it now would be redundant.
+</div>
+{% endif %}
+{% if compat.lower_level_than %}
+<div class="card" data-compat="lower-level">
+  This cert is a lower level than one you already have
+  ({% for c in compat.lower_level_than %}<strong>{{ c.name }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %})
+  — usually only worth pursuing if something external requires it.
+</div>
+{% endif %}
+{% for edge in compat.covered_other %}
+<div class="card" data-compat="covered">
+  Your <strong>{{ edge.to_cert.name }}</strong> {{ edge.get_effect_display|lower }} this one.
+  <span class="conf">{{ edge.confidence }}</span>
+</div>
+{% endfor %}
+{% if compat.shared_ceu %}
+<div class="card" data-compat="shared-ceu">
+  Shares {{ cert.provider.name }}'s {{ compat.ceu_currency }} pool with
+  {% for c in compat.shared_ceu %}<strong>{{ c.name }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}
+  — qualifying activities can count toward both.
+</div>
+{% endif %}
+{% for t in compat.tiers %}
+<div class="card" data-compat="tier">
+  {% if t.relation == 'higher' %}Higher tier than your <strong>{{ t.cert.name }}</strong>.
+  {% else %}Same tier as your <strong>{{ t.cert.name }}</strong>.{% endif %}
+</div>
+{% endfor %}
+{% if not compat.holds_it and not compat.renews_yours and not compat.waives_fee_for and not compat.supersedes_yours and not compat.prereqs_met and not compat.required_by_yours and not compat.lower_level_than and not compat.covered_other and not compat.shared_ceu and not compat.tiers %}
+<p class="empty">No known interactions with the certifications you hold.</p>
+{% endif %}
+{% endblock %}

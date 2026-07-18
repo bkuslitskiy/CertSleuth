@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Browse certifications — CertSleuth{% endblock %}
+{% block content %}
+<h1>Browse certifications</h1>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% for p in providers %}
+<div class="card">
+  <a href="{% url 'catalog_provider' p.slug %}">{{ p.name }}</a>
+  <span class="num">{{ p.n_certs }} certification{{ p.n_certs|pluralize }}</span>
+  {% if p.ceu_currency %}<span class="conf">{{ p.ceu_currency }}</span>{% endif %}
+  {% if p.id in my_provider_ids %}<span class="chip green" title="You hold certifications from this provider"></span>{% endif %}
+</div>
+{% empty %}<p class="empty">The catalog is empty — check back after the next research pass.</p>
+{% endfor %}
+{% endblock %}
