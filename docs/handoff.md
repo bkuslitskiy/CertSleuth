@@ -62,8 +62,19 @@ This is the output of the crawl/extraction runs:
   `/admin/research/stagedchange/?status__exact=pending` — AWS/GIAC/ISACA, extractor
   `claude-code-local`. First non-Scrum renewal rules. Mirror in
   `sample_data/renewal-rules-2026-07-18/`.
-- 320 sources; render recrawl moved the MS Learn browse page barren→hub and refreshed the
-  renewal-policy pages. `needs_render` now means "no renderer available", not a markup guess.
+- **✎ Full rendered recrawl of all 320 sources (session 2, later):** every source re-fetched
+  with rendering + busted etags and reclassified on real evidence. Now **26 active / 256 hub /
+  31 dead / 7 barren / 0 needs_render**. Notable: 72 seeds that had defaulted to `active`
+  without ever yielding got their first true classification (hub); 21 AWS/CompTIA/ISACA cert
+  pages went hub→active via live auto-extraction (SEC-018's first production run — 21 facts);
+  11 ISACA `verify-application-fee` endpoints (auth-walled, 40x on GET) correctly moved to
+  dead. Two proven yielders (isc2/certifications, aws/recertification) were restored to
+  active after the no-new-facts-this-round demotion.
+- **Pending review is now 43**: 22 renewal/upgrade facts (`claude-code-local`) + 21
+  auto-extracted certification facts (`worker-deterministic-v1`, dupes of existing catalog
+  rows — approve to refresh names, or reject; harmless either way).
+- **~279 leased extraction jobs** will expire back to queued (30-min lease) — they're the
+  no-facts-this-round pages; next operator extraction session claims them. Not an error.
 
 ## What was built this session (by theme)
 
