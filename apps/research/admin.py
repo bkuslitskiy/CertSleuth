@@ -50,23 +50,65 @@ class JobAdmin(admin.ModelAdmin):
 
 @admin.register(SourceSubmission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ("url", "description", "origin", "submitted_by", "status", "created_at")
-    list_filter = ("status", "origin")
+    """Review queue for the crawl frontier (D16/SEC-017). Each row carries its crawl
+    history: whether a Source already exists for the URL, its status, when it was last
+    fetched, and whether it ever yielded facts — so an approver can tell a brand-new page
+    from a re-discovery of something already crawled."""
+    list_display = ("url", "description", "origin", "depth", "discovered_from",
+                    "prior_crawl", "status", "created_at")
+    list_filter = ("status", "origin", "depth")
+    search_fields = ("url", "description")
+    list_select_related = ("discovered_from", "submitted_by")
+    readonly_fields = ("prior_crawl", "canonical_url", "discovered_from", "depth",
+                       "origin", "created_at")
 
     actions = ["trigger_crawl"]
+
+    def get_queryset(self, request):
+        # Match the existing Source by exact URL or by the submission's canonical URL
+        # (the dedupe key) — one subquery per column, no per-row queries.
+        from django.db.models import OuterRef, Q, Subquery
+        from apps.catalog.models import Source
+        match = Source.objects.filter(
+            Q(url=OuterRef("url")) | Q(url=OuterRef("canonical_url")))
+        return super().get_queryset(request).annotate(
+            prior_status=Subquery(match.values("status")[:1]),
+            prior_fetched=Subquery(match.values("last_fetched_at")[:1]),
+            prior_yield=Subquery(match.values("last_yield_count")[:1]))
+
+    @admin.display(description="Prior crawl")
+    def prior_crawl(self, obj):
+        """'—' for a never-seen URL; else status + last fetch + historical yield."""
+        status = getattr(obj, "prior_status", None)
+        if status is None:
+            return "—  (new URL)"
+        fetched = getattr(obj, "prior_fetched", None)
+        parts = [status, f"fetched {fetched:%Y-%m-%d}" if fetched else "never fetched"]
+        y = getattr(obj, "prior_yield", None)
+        if y:
+            parts.append(f"{y} fact(s)")
+        return " · ".join(parts)
 
     @admin.action(description="Trigger crawl (D16: promotes to Source + queues job)")
     def trigger_crawl(self, request, queryset):
         from apps.catalog.models import Source
+        already, promoted = 0, 0
         for sub in queryset.filter(status=SourceSubmission.Status.QUEUED):
             # Carry crawl provenance (depth/discovered_from) onto the promoted Source (SEC-017).
-            src, _ = Source.objects.get_or_create(
+            src, created = Source.objects.get_or_create(
                 url=sub.url,
                 defaults={"submitted_by": sub.submitted_by, "depth": sub.depth,
                           "discovered_from": sub.discovered_from})
             ExtractionJob.objects.create(source=src)
             sub.status = SourceSubmission.Status.CRAWLED
             sub.save(update_fields=["status"])
+            promoted += created
+            already += (not created)
+        if already:
+            self.message_user(
+                request, f"{already} of {already + promoted} URL(s) already existed as "
+                         f"Sources — re-queued for crawl rather than duplicated.",
+                level=messages.WARNING)
 
 
 admin.site.register(ChangeReport)
