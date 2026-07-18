@@ -42,7 +42,9 @@ def claim(request):
         j.leased_by = tok.name
         j.lease_expires_at = now + timedelta(minutes=LEASE_MINUTES)
         j.save(update_fields=["status", "leased_by", "lease_expires_at"])
-        out.append({"job_id": j.pk, "source_url": j.source.url})
+        # Prior validators let the worker send a conditional GET (skip unchanged pages).
+        out.append({"job_id": j.pk, "source_url": j.source.url,
+                    "etag": j.source.etag, "last_modified": j.source.http_last_modified})
     return JsonResponse({"jobs": out})
 
 

@@ -19,9 +19,15 @@ import json
 import os
 import pathlib
 import sys
+import time
+import urllib.error
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # allow `import crawl`
+import crawl  # noqa: E402  (worker/crawl.py — deterministic frontier helpers, SEC-017)
+
 TOKEN = os.environ.get("CERTSLEUTH_WORKER_TOKEN", "")
+CRAWL_DELAY_SECONDS = 1.0  # politeness between fetches
 # Provider sites (e.g. scrumalliance.org) 403 a bare/absent User-Agent. Identify as a
 # normal browser so public policy pages are reachable.
 USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -36,25 +42,65 @@ def _req(url, data=None):
         return json.load(resp)
 
 
+def _robots_fetch(robots_url):
+    try:
+        req = urllib.request.Request(robots_url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.read().decode("utf-8", "replace")
+    except Exception:
+        return None  # missing/unreadable robots -> fail open
+
+
 def fetch(api, n):
     jobs = _req(f"{api}/api/worker/jobs/claim?n={n}")["jobs"]
     outdir = pathlib.Path("jobs")
     outdir.mkdir(exist_ok=True)
     manifest = []
-    for j in jobs:
+    snapped = 0
+    for i, j in enumerate(jobs):
+        if i:
+            time.sleep(CRAWL_DELAY_SECONDS)
+        url = j["source_url"]
+        if not crawl.robots_allows(url, fetcher=_robots_fetch):
+            print(f"job {j['job_id']}: robots.txt disallows {url}", file=sys.stderr)
+            manifest.append({**j, "http_status": "robots_disallowed"})
+            continue
+        # Conditional GET: skip pages unchanged since the last crawl.
+        headers = {"User-Agent": USER_AGENT}
+        if j.get("etag"):
+            headers["If-None-Match"] = j["etag"]
+        if j.get("last_modified"):
+            headers["If-Modified-Since"] = j["last_modified"]
         try:
-            req = urllib.request.Request(j["source_url"], headers={"User-Agent": USER_AGENT})
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=30) as resp:
                 content = resp.read()
+                etag = resp.headers.get("ETag", "")
+                last_mod = resp.headers.get("Last-Modified", "")
+        except urllib.error.HTTPError as e:
+            if e.code == 304:  # Not Modified -> conditional-fetch hit, skip extraction
+                manifest.append({**j, "unchanged": True})
+                continue
+            print(f"job {j['job_id']}: fetch failed: HTTP {e.code}", file=sys.stderr)
+            manifest.append({**j, "http_status": e.code})
+            continue
         except Exception as e:
             print(f"job {j['job_id']}: fetch failed: {e}", file=sys.stderr)
+            manifest.append({**j, "http_status": "error"})
             continue
-        h = hashlib.sha256(content).hexdigest()
+        text = content.decode("utf-8", "replace")
         snap = outdir / f"{j['job_id']}.html"
         snap.write_bytes(content)
-        manifest.append({**j, "snapshot": str(snap), "snapshot_hash": h})
+        snapped += 1
+        manifest.append({**j, "snapshot": str(snap),
+                         "snapshot_hash": hashlib.sha256(content).hexdigest(),
+                         "http_status": 200, "etag": etag, "last_modified": last_mod,
+                         "canonical": crawl.extract_canonical(text, url),
+                         "discovered_links": crawl.scan_links(text, url)})
     (outdir / "jobs.jsonl").write_text("\n".join(json.dumps(m) for m in manifest))
-    print(f"claimed {len(jobs)}, snapshotted {len(manifest)} -> jobs/jobs.jsonl")
+    total_links = sum(len(m.get("discovered_links", [])) for m in manifest)
+    print(f"claimed {len(jobs)}, snapshotted {snapped}, discovered {total_links} "
+          f"same-domain links -> jobs/jobs.jsonl")
 
 
 def submit(api, results_path):
