@@ -17,6 +17,11 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-django>=4.8", "bandit>=1.7", "pip-audit>=2.7", "ruff>=0.5"]
+# Operator-side only: the extraction worker renders JS-built provider pages (SEC-019).
+# The server never imports this. Install with `pip install -e .[render]` plus
+# `playwright install chromium`; without it the worker fetches unrendered and marks
+# affected sources needs_render.
+render = ["playwright>=1.47"]
 
 [tool.setuptools.packages.find]
 include = ["apps*", "config*", "worker*", "schemas*"]

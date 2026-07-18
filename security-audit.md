@@ -17,7 +17,7 @@ Review cadence: touch this file in every PR that lands security-relevant code; f
 | V7 | Error handling & logging | planned | Audit log for Approver/Admin actions; no secrets/PII in logs; structured logs off-box | — | 2026-07-16 |
 | V8 | Data protection | planned | No evidence docs (SEC-001); extract-and-discard email content (SEC-003); full account deletion; data classification table in spec §7 | SEC-001, SEC-003 | 2026-07-16 |
 | V9 | Communication | planned | TLS everywhere; HSTS; Caddy auto-TLS on the VM | — | 2026-07-16 |
-| V10 | Malicious code | planned | CI dependency + container scanning; commit secret-scanning; pinned dependencies | — | 2026-07-16 |
+| V10 | Malicious code | partial | CI dependency + container scanning; commit secret-scanning; pinned dependencies. Worker renders untrusted provider pages in sandboxed headless Chromium (SEC-019) — operator-side only, never imported by the server; no page-supplied script is evaluated by our code, non-document subresources aborted, 20s cap | SEC-006, SEC-019 | 2026-07-18 |
 | V11 | Business logic | partial | Crawl-on-demand gate for community sources (SEC-007) verified in code + tests (offer/badge/source submissions all inert; spend triggers approver-only per SEC-013 audit); waitlist cap logic; lease TTL on job claims | SEC-007, SEC-013 | 2026-07-17 |
 | V12 | Files & resources | planned | Transient-only upload parsing (SEC-001); signed short-lived URLs if any object access; upload size/type limits | SEC-001 | 2026-07-16 |
 | V13 | API & web service | planned | Worker API: per-worker tokens, least scope, rate limits; ingest schema-validated; no server-initiated outbound to operator network (SEC-004) | SEC-004, SEC-005 | 2026-07-16 |

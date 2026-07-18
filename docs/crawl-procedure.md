@@ -51,16 +51,40 @@ Nothing is deleted — a deleted URL just gets rediscovered and repopulated next
 |---|---|---|
 | **active** | facts > 0 | normal — 7d |
 | **hub** | facts = 0, promising same-domain links > 0 | moderate — 30d (to surface new certs) |
-| **barren** | facts = 0, no promising links | very low — 180d; recency not treated as fresh |
-| **needs_render** | real 200 but content is JS-hidden ("not fully loaded") | no text recrawl; flagged for the future headless path (D11) |
+| **barren** | facts = 0, no promising links, **after rendering** | very low — 180d; recency not treated as fresh |
+| **needs_render** | page looked empty and **no renderer was available** | no text recrawl; re-run the fetch on a host with Playwright installed |
 | **dead** | 404 / 403 | very low / none; kept so rediscovery doesn't re-crawl eagerly |
+
+"Looked empty" is measured by `crawl.main_text_len()` — visible characters **outside** nav,
+header, footer, aside, and cookie banners — against a 500-char threshold. Whole-page counts
+were tried first and do not work: site chrome alone put a pure JS shell at 603 chars, past
+the threshold, while the same page measures 175 on main content against 5,760–9,402 for real
+cert pages (SEC-019).
 
 ## Caps
 
 - Depth ≤ **4** from seed (providers nest cert detail deep behind categories).
 - ≤ **50** new pages per domain per run.
 
+## Rendering
+
+`fetch` renders every live 200 in headless Chromium by default (SEC-019), because deciding
+*whether* a page needs a browser turned out to be harder and less reliable than just using
+one. Order of operations keeps it cheap:
+
+1. robots.txt check — a disallowed URL never loads.
+2. Conditional GET (`If-None-Match` / `If-Modified-Since`) — a **304 never reaches the browser**.
+3. Only a live 200 is re-loaded in Chromium; a render failure falls back to the raw HTML.
+
+Setup is operator-side: `pip install -e .[render]` then `playwright install chromium`.
+Without it the worker still runs, fetches unrendered, and marks affected sources
+`needs_render`. `--no-render` disables it explicitly.
+
+Cost is roughly 6.6s/page rendered vs 0.2s raw, bounded by the 304 path and the cadence
+tiers above. Worth it: `learn.microsoft.com/credentials/browse/` unrendered yields 603
+visible chars and **0** links (filed `barren`, 180d); rendered it yields 9,797 chars and
+**34** same-domain links, including the Microsoft renewal-policy page.
+
 ## Out of scope for now
 
 - **Sitemaps** — carry far more URLs than are relevant; wasted budget. Revisit much later.
-- **Headless rendering** — `needs_render` sources wait until that path exists (D11).

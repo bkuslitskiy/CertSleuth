@@ -47,10 +47,41 @@ def dedupe_key(url, canonical=""):
 
 def visible_text_len(html):
     """Rough count of visible (non-markup, non-script) characters. A JS-rendered shell
-    returns a small number even on a 200 — the signal for 'needs_render' vs 'barren'."""
+    returns a small number even on a 200 — one signal for 'needs_render' vs 'barren'."""
     t = _SCRIPT_STYLE_RE.sub(" ", html)
     t = _TAG_RE.sub(" ", t)
     return len(" ".join(t.split()))
+
+
+# A JS shell still ships nav, footer, and a cookie banner — often well over a thousand
+# visible chars — so a low text count alone misses them (learn.microsoft.com/credentials/
+# browse/ was filed 'barren' at ~1.4k chars of pure chrome). These are positive shell
+# markers: an app mount point left empty, or an explicit enable-JavaScript notice.
+_EMPTY_MOUNT_RE = re.compile(
+    r'<(div|main|section)\b[^>]*\bid=["\'](root|app|__next|main-content|content)["\'][^>]*>\s*'
+    r'</\1>', re.I)
+_ENABLE_JS_RE = re.compile(
+    r'<noscript\b[^>]*>(?:(?!</noscript>).){0,400}?'
+    r'(enable\s+javascript|javascript\s+(?:is\s+)?(?:required|disabled)|'
+    r'requires\s+javascript|turn\s+on\s+javascript)', re.I | re.S)
+
+
+# Chrome (nav, header, footer, cookie banner) is roughly constant across a site and swamps
+# the content signal: learn.microsoft.com/credentials/browse/ carries 603 visible chars of
+# pure chrome, while comptia's real cert page carries 15,749 — but measured against total
+# markup the two are indistinguishable (0.037 vs 0.033), because inline JS dominates both.
+# Measuring MAIN content instead of the whole page is what separates them.
+_CHROME_RE = re.compile(
+    r'<(nav|header|footer|aside)\b[^>]*>.*?</\1>|'
+    r'<div\b[^>]*\b(?:class|id)=["\'][^"\']*\b(?:cookie|consent|banner|breadcrumb|'
+    r'site-header|site-footer|skip-link)\b[^"\']*["\'][^>]*>.*?</div>', re.I | re.S)
+
+
+def main_text_len(html):
+    """Visible characters outside site chrome — the content signal, with nav/header/footer/
+    aside and cookie-banner blocks removed. A shell drops to near zero here; a real page
+    keeps nearly all of its text."""
+    return visible_text_len(_CHROME_RE.sub(" ", html))
 
 
 def extract_canonical(html, base_url):
