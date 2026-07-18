@@ -12,12 +12,31 @@ class Confidence(models.TextChoices):  # D8
 
 
 class Source(models.Model):
-    """Provenance record (SEC-005/006: provenance stored apart from content)."""
+    """Provenance record (SEC-005/006: provenance stored apart from content).
+    Crawl classification + cadence per docs/crawl-procedure.md (SEC-017)."""
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active (yields facts)"
+        HUB = "hub", "Hub (same-domain links, no facts)"
+        BARREN = "barren", "Barren (no facts, no links)"
+        NEEDS_RENDER = "needs_render", "Needs render (JS-hidden content)"
+        DEAD = "dead", "Dead (404/403)"
+
+    # cadence by status (days); barren/needs_render/dead recrawl rarely, never delete.
+    CADENCE_BY_STATUS = {"active": 7, "hub": 30, "barren": 180, "needs_render": 365, "dead": 365}
+
     url = models.URLField(unique=True, max_length=500)
     cadence_days = models.PositiveSmallIntegerField(default=7)  # weekly rules, daily offers
     scheduled = models.BooleanField(default=False)  # D16: only Approver-promoted sources auto-crawl
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     last_fetched_at = models.DateTimeField(null=True, blank=True)
     last_content_hash = models.CharField(max_length=64, blank=True)
+    etag = models.CharField(max_length=250, blank=True)          # conditional GET
+    http_last_modified = models.CharField(max_length=80, blank=True)
+    last_yield_count = models.PositiveIntegerField(default=0)     # facts from the last crawl
+    last_yield_at = models.DateTimeField(null=True, blank=True)
+    discovered_from = models.ForeignKey("self", null=True, blank=True,
+                                        on_delete=models.SET_NULL, related_name="discovered")
+    depth = models.PositiveSmallIntegerField(default=0)           # hops from a seed
     submitted_by = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):

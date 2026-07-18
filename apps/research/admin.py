@@ -50,15 +50,20 @@ class JobAdmin(admin.ModelAdmin):
 
 @admin.register(SourceSubmission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ("url", "description", "submitted_by", "status", "created_at")
+    list_display = ("url", "description", "origin", "submitted_by", "status", "created_at")
+    list_filter = ("status", "origin")
+
     actions = ["trigger_crawl"]
 
     @admin.action(description="Trigger crawl (D16: promotes to Source + queues job)")
     def trigger_crawl(self, request, queryset):
         from apps.catalog.models import Source
         for sub in queryset.filter(status=SourceSubmission.Status.QUEUED):
-            src, _ = Source.objects.get_or_create(url=sub.url,
-                                                  defaults={"submitted_by": sub.submitted_by})
+            # Carry crawl provenance (depth/discovered_from) onto the promoted Source (SEC-017).
+            src, _ = Source.objects.get_or_create(
+                url=sub.url,
+                defaults={"submitted_by": sub.submitted_by, "depth": sub.depth,
+                          "discovered_from": sub.discovered_from})
             ExtractionJob.objects.create(source=src)
             sub.status = SourceSubmission.Status.CRAWLED
             sub.save(update_fields=["status"])

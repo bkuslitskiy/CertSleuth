@@ -70,7 +70,8 @@ class StagedChange(models.Model):
 
 
 class SourceSubmission(models.Model):
-    """D16: inert until an Approver triggers the crawl. Untrusted users can't cause spend."""
+    """D16: inert until an Approver triggers the crawl. Untrusted users can't cause spend.
+    Also the frontier for crawl-discovered links (SEC-017) — origin records which."""
     class Status(models.TextChoices):
         QUEUED = "queued", "Queued (inert)"
         # value stays 'crawled' (no migration); the action registers the Source and
@@ -78,8 +79,17 @@ class SourceSubmission(models.Model):
         CRAWLED = "crawled", "Crawl Queued"
         REJECTED = "rejected", "Rejected"
 
+    class Origin(models.TextChoices):
+        USER = "user", "User submission"
+        CRAWL = "crawl", "Crawl discovery"
+
     url = models.URLField(max_length=500)
+    canonical_url = models.URLField(max_length=500, blank=True)   # dedupe key (rel=canonical)
     description = models.CharField(max_length=300)
+    origin = models.CharField(max_length=8, choices=Origin.choices, default=Origin.USER)
+    discovered_from = models.ForeignKey("catalog.Source", null=True, blank=True,
+                                        on_delete=models.SET_NULL, related_name="+")
+    depth = models.PositiveSmallIntegerField(default=0)           # hops from a seed
     submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -4,14 +4,19 @@ from django.utils import timezone
 
 
 def queue_due_sources():
-    """Re-crawl cadence (spec 3.5): scheduled sources past their cadence get a job,
-    unless one is already open. Community submissions never enter here (D16)."""
+    """Re-crawl cadence (spec 3.5, SEC-017): scheduled sources past their status-based
+    cadence get a job, unless one is already open. Community submissions never enter here
+    (D16). dead/needs_render pages are never auto-recrawled (a fixed URL / headless path
+    is a manual action); active/hub/barren recrawl on their tiered cadence and don't
+    refresh recency until they actually yield."""
     from apps.catalog.models import Source
     from .models import ExtractionJob
     now = timezone.now()
+    recrawlable = [Source.Status.ACTIVE, Source.Status.HUB, Source.Status.BARREN]
     queued = 0
-    for src in Source.objects.filter(scheduled=True):
-        if src.last_fetched_at and src.last_fetched_at > now - timedelta(days=src.cadence_days):
+    for src in Source.objects.filter(scheduled=True, status__in=recrawlable):
+        cadence = Source.CADENCE_BY_STATUS.get(src.status, src.cadence_days)
+        if src.last_fetched_at and src.last_fetched_at > now - timedelta(days=cadence):
             continue
         if ExtractionJob.objects.filter(source=src, status__in=["queued", "leased"]).exists():
             continue
