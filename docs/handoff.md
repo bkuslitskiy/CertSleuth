@@ -2,6 +2,13 @@
 
 Snapshot for the next working session. Pairs with the auto-loaded project memory.
 
+> **Update 2026-07-18 (session 2).** Wired the deterministic extractor into the worker
+> (SEC-018); made the worker render JS-built pages by default (SEC-019), replacing the
+> failed `needs_render` heuristic with `main_text_len` + real rendering; re-crawled the
+> renewal-policy pages with rendering on and extracted the **first non-Scrum renewal rules**
+> (AWS/GIAC/ISACA, 22 facts now pending review). Two numbers below were already stale when
+> written — corrected inline and marked ✎.
+
 ## TL;DR
 
 The project went from "authored but never executed" to **booted, tested, CI-green, and
@@ -47,10 +54,16 @@ This is the output of the crawl/extraction runs:
   — Scrum Alliance, ISC2, Google Cloud/Career, and the recovered GIAC / CompTIA / ISACA /
   AWS catalogs. The approval records (audit trail) are at
   `/admin/research/stagedchange/?status__exact=approved`. The pending review queue is empty.
-- **~94 crawl-discovered submissions still queued (inert)** at
-  `/admin/research/sourcesubmission/?origin__exact=crawl` — deeper cert pages, depth 2,
-  awaiting approver promotion. (This is the long URL queue, distinct from the facts above.)
-- 320 sources: 107 active, 201 hub, 9 dead, 2 barren, 1 needs_render.
+- **✎ 444 crawl-discovered submissions queued (inert)** at
+  `/admin/research/sourcesubmission/?origin__exact=crawl` — the handoff first said "~94";
+  it was 387 at session-2 start and 444 after the render recrawl added 57. Deeper cert/policy
+  pages awaiting approver promotion. (The long URL queue, distinct from the facts above.)
+- **22 renewal-rule/upgrade facts pending review** (session 2) at
+  `/admin/research/stagedchange/?status__exact=pending` — AWS/GIAC/ISACA, extractor
+  `claude-code-local`. First non-Scrum renewal rules. Mirror in
+  `sample_data/renewal-rules-2026-07-18/`.
+- 320 sources; render recrawl moved the MS Learn browse page barren→hub and refreshed the
+  renewal-policy pages. `needs_render` now means "no renderer available", not a markup guess.
 
 ## What was built this session (by theme)
 
@@ -87,15 +100,19 @@ This is the output of the crawl/extraction runs:
 ## Open work
 
 **Autonomous (no Boris needed):**
-- Open PR for `provider-extraction-tuning`; delete merged branches.
-- Wire `worker/extractors.py` into the worker submit flow so normal crawls stage these
-  providers' certs automatically (currently a one-off recovery script did it).
-- Promote + crawl the 93 queued depth-2 pages (another frontier round).
-- Tune the `needs_render` visible-text threshold (500) — one JS-shell page
-  (`learn.microsoft.com/credentials/browse/`) fell into `barren`.
+- ~~Wire `worker/extractors.py` into the worker flow~~ — **done** session 2 (SEC-018).
+- ~~Tune the `needs_render` threshold~~ — **superseded** session 2 by rendering + `main_text_len`
+  (SEC-019). The MS Learn browse page is now `hub`, not `barren`.
+- ~~Extract renewal rules from provider policy pages~~ — **AWS/GIAC/ISACA done** session 2
+  (22 facts pending review). Still open: **CompTIA** (per-cert CEU page not yet crawled —
+  `why-renew` is motivational only), **ISC2** and **Google** (no policy page crawled yet),
+  and ISACA's newer AI credentials. Microsoft renewal is cleanly extractable but has no
+  catalog provider — add one first if desired.
+- Promote + crawl the queued depth-2 pages (444 now) — another frontier round, **now with
+  rendering**, so JS-built provider catalogs (e.g. MS Learn browse, 34 links) come through.
 - RLS enforcement code-readiness done; still needs the deploy-side non-owner role.
-- Extract **renewal rules** (CEU/CPE/PDU + fees) from provider policy pages — only Scrum
-  Alliance has a clean one so far; most seed URLs are overview pages (many were stale/404).
+- The 29 leased renewal jobs from the session-2 recrawl (401-walled ISACA quizzes, etc.)
+  will expire back to `queued` and requeue on cadence — no action needed.
 
 **Needs Boris (credentials/accounts/decisions):**
 - (Done 2026-07-18: reviewed & approved the staged facts — now in the catalog.)

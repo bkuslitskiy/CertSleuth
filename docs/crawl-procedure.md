@@ -85,6 +85,20 @@ tiers above. Worth it: `learn.microsoft.com/credentials/browse/` unrendered yiel
 visible chars and **0** links (filed `barren`, 180d); rendered it yields 9,797 chars and
 **34** same-domain links, including the Microsoft renewal-policy page.
 
+### One-time gotcha: bust the etag cache when enabling rendering
+
+Conditional fetch keys on **server content identity** (etag / Last-Modified), but rendering
+changes what *we* extract from byte-identical server HTML. A source snapshotted before
+rendering was enabled still has a matching etag, so the first render pass 304s and the
+browser never runs — the page keeps its stale pre-render status. Observed exactly this:
+8 of 32 renewal targets (including the MS Learn browse page this work exists to fix) 304'd
+on the first pass and stayed `barren`/`hub` until their etags were cleared.
+
+So the render migration is a **one-time cache bust**: clear `etag` + `http_last_modified`
+on the sources you want re-rendered, then recrawl. Steady state needs no bust — new etags
+are stored alongside rendered snapshots, so a later 304 correctly means "rendered content
+still current."
+
 ## Out of scope for now
 
 - **Sitemaps** — carry far more URLs than are relevant; wasted budget. Revisit much later.
