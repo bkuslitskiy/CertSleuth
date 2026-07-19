@@ -85,6 +85,9 @@ class SourceSubmission(models.Model):
 
     url = models.URLField(max_length=500)
     canonical_url = models.URLField(max_length=500, blank=True)   # dedupe key (rel=canonical)
+    # Registrable domain of `url`, auto-set on save. Denormalized so approvers can filter
+    # the queue by provider site and bulk-approve one domain at a time.
+    domain = models.CharField(max_length=120, blank=True, db_index=True)
     description = models.CharField(max_length=300)
     origin = models.CharField(max_length=8, choices=Origin.choices, default=Origin.USER)
     discovered_from = models.ForeignKey("catalog.Source", null=True, blank=True,
@@ -93,6 +96,20 @@ class SourceSubmission(models.Model):
     submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @staticmethod
+    def registrable_domain(url):
+        """Best-effort eTLD+1, mirroring worker/crawl.py registrable_domain (the worker
+        stays stdlib-standalone, so the two-line logic is duplicated, not imported)."""
+        from urllib.parse import urlparse
+        host = (urlparse(url).netloc or "").lower().split(":")[0]
+        parts = [p for p in host.split(".") if p]
+        return ".".join(parts[-2:]) if len(parts) >= 2 else host
+
+    def save(self, *args, **kwargs):
+        if not self.domain:
+            self.domain = self.registrable_domain(self.url)[:120]
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.description or self.url

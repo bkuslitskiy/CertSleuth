@@ -75,6 +75,22 @@ def test_trigger_crawl_warns_on_existing_source(approver, client):
     assert src.extractionjob_set.count() == 1                             # but re-queued
 
 
+def test_domain_auto_set_on_save(approver):
+    sub = SourceSubmission.objects.create(
+        url="https://community.example.co:8443/certifications/foo", description="d")
+    assert sub.domain == "example.co"          # registrable domain, port stripped
+
+
+def test_domain_filter_narrows_queue(approver, client):
+    SourceSubmission.objects.create(url="https://a.comptia.org/x", description="d")
+    SourceSubmission.objects.create(url="https://www.isaca.org/y", description="d")
+    client.force_login(approver)
+    resp = client.get("/admin/research/sourcesubmission/?domain=comptia.org")
+    body = resp.content.decode()
+    assert "a.comptia.org/x" in body
+    assert "isaca.org/y" not in body
+
+
 def test_changelist_renders_with_history_column(approver, client):
     Source.objects.create(url="https://ex.test/known", status="barren",
                           last_fetched_at=timezone.now())

@@ -54,9 +54,9 @@ class SubmissionAdmin(admin.ModelAdmin):
     history: whether a Source already exists for the URL, its status, when it was last
     fetched, and whether it ever yielded facts — so an approver can tell a brand-new page
     from a re-discovery of something already crawled."""
-    list_display = ("url", "description", "origin", "depth", "discovered_from",
+    list_display = ("url", "description", "domain", "origin", "depth", "discovered_from",
                     "prior_crawl", "status", "created_at")
-    list_filter = ("status", "origin", "depth")
+    list_filter = ("status", "domain", "origin", "depth")
     search_fields = ("url", "description")
     list_select_related = ("discovered_from", "submitted_by")
     readonly_fields = ("prior_crawl", "canonical_url", "discovered_from", "depth",
