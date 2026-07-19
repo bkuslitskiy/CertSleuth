@@ -18,30 +18,70 @@
   {% endfor %}
 </table></div>
 {% else %}
-<p class="empty">No certifications yet. Add one below, or import from Credly in seconds.</p>
+<p class="empty">No certifications yet. Add one manually, or use an import below.</p>
 {% endif %}
-<p>
+<p class="actions">
   <a class="btn" href="{% url 'add_cert' %}">Add a certification</a>
-  <a class="btn quiet" href="{% url 'credly_import' %}">Import from Credly</a>
-  <a class="btn quiet" href="{% url 'import_source' 'microsoft' %}">Microsoft Learn</a>
-  <a class="btn quiet" href="{% url 'import_source' 'accredible' %}">Accredible</a>
-  <a class="btn quiet" href="{% url 'import_source' 'openbadges' %}">Open Badge file</a>
-  <a class="btn quiet" href="{% url 'import_source' 'linkedin' %}">LinkedIn CSV</a>
-  {% if has_approved_scan %}
-  <a class="btn" href="{% url 'gmail_scan_run' %}">Run approved inbox scan</a>
-  {% elif user.gmail_scan_enabled %}
-  <form method="post" action="{% url 'request_gmail_scan' %}" style="display:inline">
-    {% csrf_token %}<button class="btn quiet">Scan my inbox</button></form>
-  {% else %}<a class="btn quiet" href="{% url 'gmail_enrollment' %}">Enable inbox scanning</a>{% endif %}
+  <a class="btn quiet" href="{% url 'add_activity' %}">Log CEU activity</a>
+  <a class="btn quiet" href="{% url 'catalog_providers' %}">Browse the catalog</a>
 </p>
+
+<h2>Planned certifications</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+{% for p in planned %}
+<div class="card planned-cert">
+  <div class="planned-head">
+    <a href="{% url 'catalog_cert' p.cert.provider.slug p.cert.slug %}"><strong>{{ p.cert.name }}</strong></a>
+    <span class="conf">{{ p.cert.provider.name }}</span>
+    <form method="post" action="{% url 'plan_toggle' p.cert.pk %}" class="plan-form">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+      <button class="btn quiet" title="Remove from planned">★ Remove</button>
+    </form>
+  </div>
+  <div class="planned-facts">
+    {% if p.rule.ceu_required %}<span class="num">{{ p.rule.ceu_required }} {{ p.compat.ceu_currency }}{% if p.rule.cycle_years %} / {{ p.rule.cycle_years }}yr{% endif %}</span>
+    {% elif p.rule.cycle_years %}<span class="num">re-exam / {{ p.rule.cycle_years }}yr</span>{% endif %}
+    {% if p.compat.renews_yours %}
+      <span data-compat="renews-yours">Earning it renews
+        {% for c in p.compat.renews_yours %}<strong>{{ c.name }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}</span>
+    {% endif %}
+    {% if p.compat.prereqs_met %}<span data-compat="prereq-met">You meet the prerequisites</span>{% endif %}
+    {% if p.compat.lower_level_than %}<span data-compat="lower-level">Lower level than a cert you hold</span>{% endif %}
+    {% if p.compat.shared_ceu %}<span data-compat="shared-ceu">Shares a {{ p.compat.ceu_currency }} pool with your certs</span>{% endif %}
+  </div>
+</div>
+{% empty %}
+<p class="empty">Nothing planned yet — star a certification while <a href="{% url 'catalog_providers' %}">browsing the catalog</a> to track it here.</p>
+{% endfor %}
+
+<h2>Import your certifications</h2>
+<div class="tribar"><span></span><span></span><span></span></div>
+<div class="card import-grid">
+  <a class="btn quiet" href="{% url 'credly_import' %}">Import from Credly</a>
+  <a class="btn quiet" href="{% url 'import_source' 'microsoft' %}">Import from Microsoft Learn</a>
+  <a class="btn quiet" href="{% url 'import_source' 'accredible' %}">Import from Accredible</a>
+  <a class="btn quiet" href="{% url 'import_source' 'openbadges' %}">Import an Open Badge file</a>
+  <a class="btn quiet" href="{% url 'import_source' 'linkedin' %}">Import a LinkedIn CSV</a>
+  {% if has_approved_scan %}
+  <a class="btn" href="{% url 'gmail_scan_run' %}">Import from Gmail — run approved scan</a>
+  {% elif user.gmail_scan_enabled %}
+  <form method="post" action="{% url 'request_gmail_scan' %}">
+    {% csrf_token %}<button class="btn quiet">Import from Gmail — request a scan</button></form>
+  {% else %}
+  <a class="btn quiet" href="{% url 'gmail_enrollment' %}">Import from Gmail — enable inbox scanning</a>
+  {% endif %}
+</div>
+
 <h2>Calendar feed</h2>
 <div class="tribar"><span></span><span></span><span></span></div>
 <p class="data">Subscribe: {{ request.scheme }}://{{ request.get_host }}{% url 'ics_feed' user.ics_token %}</p>
+
 <h2>Active free offers</h2>
 <div class="tribar"><span></span><span></span><span></span></div>
 {% for o in offers %}<div class="card"><a href="{{ o.url }}" rel="noopener">{{ o.title }}</a>
   {% if o.ends %}<span class="conf"> ends {{ o.ends }}</span>{% endif %}</div>
 {% empty %}<p class="empty">No active offers right now. Spot one? Submit it from the Offers page.</p>{% endfor %}
+
 <h2>Recent activity</h2>
 <div class="tribar"><span></span><span></span><span></span></div>
 {% for a in recent %}<div class="card">{{ a.title }} <span class="num">{{ a.hours }}h · {{ a.date }}</span></div>

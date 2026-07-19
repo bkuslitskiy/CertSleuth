@@ -18,7 +18,7 @@ test("browse is login-gated", async ({ page }) => {
 
 test("nav Browse -> providers -> certs -> detail with compatibility section", async ({ page }) => {
   await login(page);
-  await page.getByRole("link", { name: "Browse" }).click();
+  await page.getByRole("link", { name: "Browse", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Browse certifications" })).toBeVisible();
 
   // CI runs on an empty catalog; local runs against real data. Assert the state we're in.

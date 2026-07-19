@@ -21,9 +21,14 @@ class UserCertification(models.Model):
 
 
 class UserGoal(models.Model):
+    """A planned certification: the user favorites a catalog cert they intend to pursue.
+    The dashboard shows each plan's compatibility with what they already hold."""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="goals")
     certification = models.ForeignKey("catalog.Certification", on_delete=models.PROTECT)
     target_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        unique_together = [("user", "certification")]
 
     def __str__(self):
         return f"{self.user.email} → {self.certification}"

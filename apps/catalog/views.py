@@ -29,10 +29,12 @@ def provider_detail(request, provider_slug):
     certs = (provider.certifications.order_by("name")
              .prefetch_related(Prefetch("renewal_rules")))
     held_ids = {uc.certification_id for uc in _my_certs(request.user)}
+    planned_ids = set(request.user.goals.values_list("certification_id", flat=True))
     rows = []
     for c in certs:
         rule = c.current_rule
         rows.append({"cert": c, "rule": rule, "held": c.pk in held_ids,
+                     "planned": c.pk in planned_ids,
                      "chip": staleness(rule.last_verified_at) if rule else "red"})
     return render(request, "catalog/provider.html",
                   {"provider": provider, "rows": rows})
@@ -45,7 +47,8 @@ def cert_detail(request, provider_slug, cert_slug):
         provider__slug=provider_slug, slug=cert_slug)
     rule = cert.current_rule
     compat = compatibility(cert, _my_certs(request.user))
+    planned = request.user.goals.filter(certification=cert).exists()
     return render(request, "catalog/certification.html", {
-        "cert": cert, "rule": rule, "compat": compat,
+        "cert": cert, "rule": rule, "compat": compat, "planned": planned,
         "chip": staleness(rule.last_verified_at) if rule else "red",
     })

@@ -9,7 +9,8 @@
   {% for r in rows %}
   <tr>
     <td><a href="{% url 'catalog_cert' provider.slug r.cert.slug %}">{{ r.cert.name }}</a>
-        {% if r.held %}<span class="chip green" title="You hold this"></span>{% endif %}</td>
+        {% if r.held %}<span class="chip green" title="You hold this"></span>{% endif %}
+        {% if r.planned %}<span title="Planned">★</span>{% endif %}</td>
     <td>{{ r.cert.level|default:"—" }}</td>
     <td class="num">{% if r.rule.ceu_required %}{{ r.rule.ceu_required }} {{ provider.ceu_currency|default:"CEU" }}{% if r.rule.cycle_years %} / {{ r.rule.cycle_years }}yr{% endif %}{% elif r.rule.cycle_years %}exam / {{ r.rule.cycle_years }}yr{% else %}—{% endif %}</td>
     <td class="num">{% if r.rule.renewal_fee_usd %}${{ r.rule.renewal_fee_usd }}{% elif r.rule.annual_fee_usd %}${{ r.rule.annual_fee_usd }}/yr{% else %}—{% endif %}</td>

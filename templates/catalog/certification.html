@@ -4,6 +4,13 @@
 <p><a href="{% url 'catalog_provider' cert.provider.slug %}">&larr; {{ cert.provider.name }}</a></p>
 <h1>{{ cert.name }}</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
+<form method="post" action="{% url 'plan_toggle' cert.pk %}" class="plan-form">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.path }}">
+  <button class="btn {% if planned %}quiet{% endif %}" data-planned="{{ planned|yesno:'yes,no' }}">
+    {% if planned %}★ Planned — remove{% else %}☆ Add to planned certs{% endif %}
+  </button>
+</form>
 
 <div class="card">
   <table>

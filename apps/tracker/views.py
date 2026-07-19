@@ -149,6 +149,27 @@ def request_gmail_scan(request):
 
 
 @login_required
+def plan_toggle(request, cert_id):
+    """Favorite/unfavorite a catalog cert as a planned certification (UserGoal).
+    POST-only; bounces back to where the user was."""
+    from apps.catalog.models import Certification
+    from .models import UserGoal
+    if request.method != "POST":
+        return redirect("catalog_providers")
+    cert = Certification.objects.filter(pk=cert_id).first()
+    if cert is None:
+        raise Http404
+    goal, created = UserGoal.objects.get_or_create(user=request.user, certification=cert)
+    if not created:
+        goal.delete()
+        messages.info(request, f"Removed {cert.name} from your planned certifications.")
+    else:
+        messages.success(request, f"Added {cert.name} to your planned certifications.")
+    return redirect(request.POST.get("next")
+                    or reverse("catalog_cert", args=[cert.provider.slug, cert.slug]))
+
+
+@login_required
 def gmail_scan_run(request):
     """Kick off the consent round-trip for the user's APPROVED scan (SEC-013: only an
     approved request gets this far; SEC-020: token handled inside one request cycle)."""

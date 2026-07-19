@@ -12,7 +12,7 @@ async function login(page) {
 
 test("dashboard shows empty states and theme toggles", async ({ page }) => {
   await login(page);
-  await expect(page.getByText("Your certifications")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your certifications", exact: true })).toBeVisible();
   const html = page.locator("html");
   await expect(html).toHaveAttribute("data-theme", "dark"); // dark default (brief)
   await page.getByRole("button", { name: "Theme" }).click();
