@@ -1,0 +1,12 @@
+{
+  "name": "certsleuth-design",
+  "private": true,
+  "description": "Design-system build only. The compiled static/css/certsleuth.css is COMMITTED so the Docker image build needs no Node (e2-micro constraint). Rebuild with: npm run css",
+  "scripts": {
+    "css": "tailwindcss -i static/css/src/input.css -o static/css/certsleuth.css --minify",
+    "css:watch": "tailwindcss -i static/css/src/input.css -o static/css/certsleuth.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

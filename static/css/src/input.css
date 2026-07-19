@@ -1,0 +1,190 @@
+/* CertSleuth design system — Apple-like: system type, pill buttons, hairline borders,
+   large-radius cards, frosted header. The RGB tri-signature survives from the brief —
+   red/green carry staleness semantics, blue is the interactive color — but as accents,
+   not decoration. Component classes keep the historical API (.card/.btn/.chip/.tribar)
+   so every template inherits the system without markup churn.
+
+   BUILD OUTPUT IS COMMITTED (static/css/certsleuth.css): `npm run css` after editing. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root, [data-theme="light"] {
+    --bg: #f5f5f7;             /* Apple neutral */
+    --surface: #ffffff;
+    --line: rgba(0, 0, 0, 0.08);
+    --ink: #1d1d1f;
+    --ink-dim: #6e6e73;
+    --accent: #0071e3;         /* interactive blue */
+    --accent-ink: #ffffff;
+    --r: #e0302f; --g: #248a3d; --y: #b25000; --b: var(--accent);
+    --chip-ink: #ffffff;
+    --header-bg: rgba(251, 251, 253, 0.8);
+  }
+  [data-theme="dark"] {
+    --bg: #161617;
+    --surface: #1d1d1f;
+    --line: rgba(255, 255, 255, 0.12);
+    --ink: #f5f5f7;
+    --ink-dim: #86868b;
+    --accent: #2997ff;
+    --accent-ink: #06121f;
+    --r: #ff453a; --g: #32d74b; --y: #ffd60a; --b: var(--accent);
+    --chip-ink: #06121f;
+    --header-bg: rgba(22, 22, 23, 0.72);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable",
+                 "Segoe UI", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+  h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+  h2 { font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; margin: 2.75rem 0 0.5rem; }
+  a { color: var(--b); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--b); outline-offset: 2px; border-radius: 4px; }
+  p { margin: 0.6rem 0; }
+
+  /* Forms (rendered via form.as_p everywhere) */
+  input[type="text"], input[type="url"], input[type="email"], input[type="password"],
+  input[type="date"], input[type="number"], select, textarea {
+    width: 100%; max-width: 30rem;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--b); outline: none; }
+  label { color: var(--ink-dim); font-size: 0.92rem; }
+  input[type="file"] { font: inherit; color: var(--ink-dim); }
+  input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+}
+
+@layer components {
+  /* Header: frosted, sticky, hairline bottom */
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 1.25rem;
+    padding: 0.65rem 1.5rem;
+    background: var(--header-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--line);
+  }
+  header.site nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+  header.site nav a { color: var(--ink); font-size: 0.95rem; opacity: 0.85; }
+  header.site nav a:hover { opacity: 1; text-decoration: none; color: var(--b); }
+  .spacer { flex: 1; }
+
+  /* Wordmark: the RGB signature, kept (brand semantics), tightened. */
+  .wordmark { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.01em; }
+  .wordmark .c { color: var(--r); } .wordmark .s { color: var(--g); } .wordmark .u { color: var(--b); }
+
+  /* Tri-bar: shrunk to a quiet accent rule under headings. */
+  .tribar { display: flex; gap: 3px; height: 3px; width: 72px; margin: 0 0 1.1rem; }
+  .tribar span { flex: 1; border-radius: 2px; }
+  .tribar span:nth-child(1) { background: var(--r); }
+  .tribar span:nth-child(2) { background: var(--g); }
+  .tribar span:nth-child(3) { background: var(--b); }
+
+  /* Cards: large radius, hairline, barely-there shadow */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 1.1rem 1.35rem;
+    margin: 0.85rem 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Buttons: Apple pills. Filled = primary action, .quiet = gray pill. */
+  .btn {
+    display: inline-block;
+    padding: 0.5rem 1.15rem;
+    border: none;
+    border-radius: 980px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: inherit; font-size: 0.95rem; font-weight: 500;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.05s ease;
+  }
+  .btn:hover { filter: brightness(1.08); text-decoration: none; }
+  .btn:active { transform: scale(0.98); }
+  .btn.quiet {
+    background: transparent;
+    color: var(--b);
+    border: 1px solid var(--line);
+  }
+  .btn.quiet:hover { background: color-mix(in srgb, var(--b) 8%, transparent); filter: none; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  a.btn { color: var(--accent-ink); }
+  a.btn.quiet { color: var(--b); }
+  .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 1.2rem 0; }
+
+  /* Tables inside cards */
+  .card table { width: 100%; border-collapse: collapse; }
+  .card th {
+    text-align: left; font-size: 0.78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-dim);
+    padding: 0.35rem 0.75rem 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .card td { padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(--line); }
+  .card tr:last-child td { border-bottom: none; }
+  .num { font-variant-numeric: tabular-nums; color: var(--ink-dim); }
+  .conf { font-size: 0.82rem; color: var(--ink-dim); text-transform: lowercase; }
+
+  /* Staleness chips: small dots, semantic colors */
+  .chip {
+    display: inline-block; width: 0.65rem; height: 0.65rem;
+    border-radius: 50%; vertical-align: middle;
+  }
+  .chip.green { background: var(--g); }
+  .chip.yellow { background: var(--y); }
+  .chip.red { background: var(--r); }
+
+  .empty { color: var(--ink-dim); }
+  .data {
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
+    font-size: 0.85rem; color: var(--ink-dim);
+    overflow-wrap: anywhere;
+  }
+  .messages {
+    list-style: none; margin: 0 0 1.2rem; padding: 0;
+  }
+  .messages li {
+    background: color-mix(in srgb, var(--b) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--b) 25%, transparent);
+    border-radius: 12px; padding: 0.6rem 1rem; margin: 0.4rem 0;
+    font-size: 0.95rem;
+  }
+
+  /* Import group: aligned, uniform pills in a responsive grid */
+  .import-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: 0.6rem; }
+  .import-grid .btn, .import-grid form { width: 100%; }
+  .import-grid form .btn { width: 100%; }
+  .import-grid .btn { text-align: center; }
+
+  /* Planned certifications */
+  .planned-cert .planned-head { display: flex; align-items: center; gap: 0.75rem; }
+  .planned-cert .planned-head .plan-form { margin-left: auto; }
+  .planned-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin-top: 0.5rem; font-size: 0.92rem; color: var(--ink-dim); }
+  .planned-facts [data-compat] { color: var(--ink); }
+  .planned-facts [data-compat="renews-yours"] { color: var(--g); }
+  .plan-form { display: inline; margin: 0.4rem 0 1rem; }
+}
