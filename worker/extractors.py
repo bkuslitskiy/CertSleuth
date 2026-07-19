@@ -71,9 +71,20 @@ def _name_og_or_title(page):  # AWS: og:title usually clean; some newer pages re
 # domain -> dict(slug, individual-cert URL regex, name fn, optional accept regex). URL
 # regexes are anchored to the top-level cert page so sub-pages (exam outlines, quizzes)
 # don't masquerade as certs.
+def _name_ms(page):          # "Microsoft Certified: Azure Administrator Associate - Certifications | Microsoft Learn"
+    return _clean(_og_title(page).split(" - Certifications")[0])
+
+
 PROVIDERS = {
     "giac.org": dict(slug="giac", url=re.compile(r"/certifications/.+-g[a-z]{2,6}/?$", re.I),
                      name=_name_whole),
+    # Cert pages live at /credentials/certifications/<slug>; exam/browse/renew sub-paths
+    # have an extra segment so the single-segment anchor skips them. The accept regex
+    # drops hub/landing pages that share the URL shape.
+    "microsoft.com": dict(slug="microsoft",
+                          url=re.compile(r"/credentials/certifications/[a-z0-9-]+/?$", re.I),
+                          name=_name_ms,
+                          accept=re.compile(r"^Microsoft Certified", re.I)),
     "comptia.org": dict(slug="comptia",
                         url=re.compile(r"/certifications/[a-z][a-z0-9-]*(?:/v\d+)?/?$", re.I),
                         name=_name_before_pipe),

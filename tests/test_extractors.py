@@ -77,6 +77,27 @@ def test_unknown_provider_returns_none():
     assert ex.extract_certification("https://example.com/x", _page(og="Something")) is None
 
 
+def test_microsoft_cert_page():
+    # live og:title format verified 2026-07-19
+    page = _page(og="Microsoft Certified: Azure Administrator Associate - Certifications | Microsoft Learn")
+    got = ex.extract_certification(
+        "https://learn.microsoft.com/en-us/credentials/certifications/azure-administrator/", page)
+    assert got == {"provider_slug": "microsoft", "slug": "azure-administrator",
+                   "name": "Microsoft Certified: Azure Administrator Associate"}
+
+
+def test_microsoft_non_cert_paths_rejected():
+    page = _page(og="Microsoft Certified: Azure Administrator Associate - Certifications | Microsoft Learn")
+    # exam pages and renewal pages have extra path segments; browse fails the accept regex
+    assert ex.extract_certification(
+        "https://learn.microsoft.com/en-us/credentials/certifications/exams/az-104", page) is None
+    assert ex.extract_certification(
+        "https://learn.microsoft.com/en-us/credentials/certifications/azure-administrator/renew", page) is None
+    assert ex.extract_certification(
+        "https://learn.microsoft.com/en-us/credentials/browse/",
+        _page(og="Browse Credentials | Microsoft Learn")) is None
+
+
 def test_isaca_subpages_rejected():
     # exam-outline / quiz sub-pages must not masquerade as certs (URL not top-level)
     page = _page(og="CISA Exam Content Outline | Something")
