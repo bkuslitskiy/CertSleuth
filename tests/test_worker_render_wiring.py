@@ -125,3 +125,40 @@ def test_fetch_disables_render_when_unavailable(monkeypatch, tmp_path):
                         lambda api, jobs, outdir, renderer: captured.setdefault("r", renderer))
     cw.fetch("https://stub", 1, use_render=True)
     assert captured["r"] is None                       # degraded, did not crash
+
+
+def test_403_falls_through_to_renderer(monkeypatch):
+    # Bot-gated sites 403 the raw client but pass a real browser (PMI/Tableau/Cisco).
+    monkeypatch.setattr(cw.crawl, "robots_allows", lambda *a, **k: True)
+
+    def _403(*a, **k):
+        raise urllib.error.HTTPError("u", 403, "Forbidden", {}, None)
+
+    monkeypatch.setattr(cw.urllib.request, "urlopen", _403)
+    r = _Renderer()
+    report, content = cw._fetch_one("https://bot-walled.test/certs", {}, r)
+    assert r.calls == 1
+    assert report["http_status"] == 200 and report["rendered"] is True
+    assert b"content the JS built" in content
+
+
+def test_403_without_renderer_stays_dead(monkeypatch):
+    monkeypatch.setattr(cw.crawl, "robots_allows", lambda *a, **k: True)
+
+    def _403(*a, **k):
+        raise urllib.error.HTTPError("u", 403, "Forbidden", {}, None)
+
+    monkeypatch.setattr(cw.urllib.request, "urlopen", _403)
+    report, content = cw._fetch_one("https://bot-walled.test/certs", {}, None)
+    assert report == {"http_status": 403} and content is None
+
+
+def test_403_render_failure_stays_dead(monkeypatch):
+    monkeypatch.setattr(cw.crawl, "robots_allows", lambda *a, **k: True)
+
+    def _403(*a, **k):
+        raise urllib.error.HTTPError("u", 403, "Forbidden", {}, None)
+
+    monkeypatch.setattr(cw.urllib.request, "urlopen", _403)
+    report, content = cw._fetch_one("https://bot-walled.test/certs", {}, _Renderer(status=None))
+    assert report == {"http_status": 403} and content is None

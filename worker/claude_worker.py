@@ -110,6 +110,22 @@ def _fetch_one(url, prior, renderer=None):
     except urllib.error.HTTPError as e:
         if e.code == 304:
             return {"unchanged": True}, None            # conditional-fetch hit
+        # Bot-gates (Akamai/Cloudflare) 403/429 a bare HTTP client but pass a real
+        # browser: retry in Chromium before declaring the page dead (PMI, Tableau,
+        # Cisco all present this wall). Same SEC-019 posture — the renderer was going
+        # to execute this page's JS anyway had the raw fetch succeeded.
+        if e.code in (403, 429) and renderer is not None:
+            status, html, _ = renderer.render(url, headers={"User-Agent": USER_AGENT})
+            if status == 200 and html:
+                content = html.encode("utf-8", "replace")
+                text = content.decode("utf-8", "replace")
+                return ({"http_status": 200, "etag": "", "last_modified": "",
+                         "snapshot_hash": hashlib.sha256(content).hexdigest(),
+                         "canonical": crawl.extract_canonical(text, url),
+                         "discovered_links": crawl.scan_links(text, url),
+                         "rendered": True,
+                         "text_len": crawl.visible_text_len(text),
+                         "main_text_len": crawl.main_text_len(text)}, content)
         return {"http_status": e.code}, None
     except Exception:
         return {"http_status": "error"}, None
