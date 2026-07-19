@@ -27,7 +27,7 @@ class StagedChangeAdmin(admin.ModelAdmin):
             try:
                 publish(staged, request.user)
                 published += 1
-            except ObjectDoesNotExist as e:
+            except (ObjectDoesNotExist, ValueError) as e:
                 failed += 1
                 self.message_user(request, f"#{staged.pk} ({staged.kind}) left pending: {e}",
                                   level=messages.ERROR)

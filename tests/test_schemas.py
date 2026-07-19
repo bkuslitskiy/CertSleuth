@@ -22,6 +22,10 @@ SAMPLES = [
     {"job_id": 4, "kind": "upgrade_path", "extractor": "claude-code-local",
      "payload": {"provider_slug": "scrum-alliance", "from_certification_slug": "csm",
                  "to_certification_slug": "a-csm", "effect": "requires"}},
+    {"job_id": 5, "kind": "credit_rule", "extractor": "claude-code-local",
+     "payload": {"provider_slug": "isaca", "category": "Certification-aligned",
+                 "activity_kinds": ["course", "conference", "webinar"],
+                 "credits_per_hour": 1, "confidence": "confirmed"}},
 ]
 
 

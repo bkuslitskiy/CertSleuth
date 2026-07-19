@@ -26,6 +26,14 @@ class UpgradePathPayload(BaseModel):
     confidence: Literal["confirmed", "commonly_accepted", "inferred"] = "commonly_accepted"
 
 
+class CreditRulePayload(BaseModel):
+    provider_slug: str
+    category: str
+    activity_kinds: list[str] = []
+    credits_per_hour: float = 1
+    confidence: Literal["confirmed", "commonly_accepted", "inferred"] = "commonly_accepted"
+
+
 class FreeOfferPayload(BaseModel):
     title: str
     url: HttpUrl
@@ -55,5 +63,6 @@ class ExtractionResult(BaseModel):
 
     def validated_payload(self):
         model = {"renewal_rule": RenewalRulePayload, "upgrade_path": UpgradePathPayload,
-                 "free_offer": FreeOfferPayload, "certification": CertificationPayload}.get(self.kind)
+                 "credit_rule": CreditRulePayload, "free_offer": FreeOfferPayload,
+                 "certification": CertificationPayload}.get(self.kind)
         return model(**self.payload).model_dump(mode="json") if model else self.payload
