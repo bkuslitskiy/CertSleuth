@@ -72,7 +72,10 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {"staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}}
 
-EMAIL_CONFIG = env.email_url("EMAIL_URL", default="consolemail://")
+# EMAIL_URL= (set but empty) must behave like unset — env.email_url's default only
+# applies when the var is absent, and an empty string crashes on "invalid schema ''"
+# (bit the first GCP deploy, 2026-07-18).
+EMAIL_CONFIG = environ.Env.email_url_config(env("EMAIL_URL", default="") or "consolemail://")
 vars().update(EMAIL_CONFIG)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CertSleuth <no-reply@localhost>")
 

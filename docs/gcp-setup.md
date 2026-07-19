@@ -63,7 +63,7 @@ git clone https://github.com/bkuslitskiy/CertSleuth.git certsleuth && cd certsle
 | `DJANGO_ALLOWED_HOSTS` | `certsleuth.com,www.certsleuth.com` |
 | `DATABASE_URL` | `postgres://certsleuth:<db-pass>@db:5432/certsleuth` |
 | `POSTGRES_PASSWORD` | same `<db-pass>` (compose passes it to the db container) |
-| `EMAIL_URL` | your Resend/Postmark SMTP string |
+| `EMAIL_URL` | your Resend/Postmark SMTP string — or leave empty for the console backend (reminders print to logs) |
 | `FIELD_ENCRYPTION_KEY` | `python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"` |
 | `ANTHROPIC_API_KEY` | prepaid API credits key (steady-state extraction only, D17) |
 | `GOOGLE_OAUTH_CLIENT_ID/SECRET` | from Part 2 — blank disables the Gmail feature cleanly |
