@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}CertSleuth{% endblock %}</title>
+  {# Cabinet Grotesk (display) + Satoshi (body) — Fontshare, free license. TODO: self-host
+     the woff2s into static/fonts before any CSP tightening. #}
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/certsleuth.css' %}">
   <script src="{% static 'js/theme.js' %}" defer></script>
 </head>

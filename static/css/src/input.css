@@ -1,8 +1,13 @@
-/* CertSleuth design system — Apple-like: system type, pill buttons, hairline borders,
-   large-radius cards, frosted header. The RGB tri-signature survives from the brief —
-   red/green carry staleness semantics, blue is the interactive color — but as accents,
-   not decoration. Component classes keep the historical API (.card/.btn/.chip/.tribar)
-   so every template inherits the system without markup churn.
+/* CertSleuth design system — "dark luxury" (Boris's sketch, 2026-07-19, adapted):
+   deep black, glass cards, pink gradient as THE accent, emerald/amber/red status
+   language, Cabinet Grotesk display + Satoshi body, uppercase tracked labels.
+
+   Adaptations from the sketch (it's a sketch, not edict):
+   - Desktop-first web app, not a 375px mobile frame; same tokens, wider container.
+   - The RGB wordmark gives way to a pink-gradient wordmark; staleness chips keep
+     emerald/amber/red (the sketch's own status colors) — semantics preserved.
+   - A light theme remains (the sketch is dark-only): inverted neutrals, same pink.
+   - Component class API (.card/.btn/.chip/.tribar) unchanged so templates don't churn.
 
    BUILD OUTPUT IS COMMITTED (static/css/certsleuth.css): `npm run css` after editing. */
 
@@ -11,29 +16,41 @@
 @tailwind utilities;
 
 @layer base {
-  :root, [data-theme="light"] {
-    --bg: #f5f5f7;             /* Apple neutral */
-    --surface: #ffffff;
-    --line: rgba(0, 0, 0, 0.08);
-    --ink: #1d1d1f;
-    --ink-dim: #6e6e73;
-    --accent: #0071e3;         /* interactive blue */
+  :root, [data-theme="dark"] {
+    --bg: #0a0a0a;
+    --surface: #0f0f0f;
+    --glass: rgba(255, 255, 255, 0.03);
+    --line: #27272a;
+    --ink: #ffffff;
+    --ink-dim: #a1a1aa;
+    --ink-mute: #71717a;
+    --pink: #ff2e95;
+    --pink-2: #b900b4;
     --accent-ink: #ffffff;
-    --r: #e0302f; --g: #248a3d; --y: #b25000; --b: var(--accent);
-    --chip-ink: #ffffff;
-    --header-bg: rgba(251, 251, 253, 0.8);
+    --g: #10b981;              /* success / active */
+    --y: #f59e0b;              /* warning / expiring */
+    --r: #ef4444;              /* stale / dead */
+    --b: var(--pink);          /* interactive inherits the accent */
+    --chip-ink: #0a0a0a;
+    --header-bg: rgba(10, 10, 10, 0.75);
   }
-  [data-theme="dark"] {
-    --bg: #161617;
-    --surface: #1d1d1f;
-    --line: rgba(255, 255, 255, 0.12);
-    --ink: #f5f5f7;
-    --ink-dim: #86868b;
-    --accent: #2997ff;
-    --accent-ink: #06121f;
-    --r: #ff453a; --g: #32d74b; --y: #ffd60a; --b: var(--accent);
-    --chip-ink: #06121f;
-    --header-bg: rgba(22, 22, 23, 0.72);
+  [data-theme="light"] {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --glass: rgba(0, 0, 0, 0.02);
+    --line: #e4e4e7;
+    --ink: #18181b;
+    --ink-dim: #52525b;
+    --ink-mute: #a1a1aa;
+    --pink: #e11d78;
+    --pink-2: #9d00a8;
+    --accent-ink: #ffffff;
+    --g: #059669;
+    --y: #b45309;
+    --r: #dc2626;
+    --b: var(--pink);
+    --chip-ink: #ffffff;
+    --header-bg: rgba(250, 250, 250, 0.8);
   }
 
   * { box-sizing: border-box; }
@@ -42,140 +59,170 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable",
-                 "Segoe UI", system-ui, sans-serif;
-    font-size: 17px;
-    line-height: 1.5;
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
-  h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
-  h2 { font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; margin: 2.75rem 0 0.5rem; }
-  a { color: var(--b); text-decoration: none; }
+  main { max-width: 1024px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+  h1, h2 { font-family: "Cabinet Grotesk", "Satoshi", system-ui, sans-serif; }
+  h1 { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 0.4rem; }
+  h2 {
+    font-size: 0.85rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--ink-dim);
+    margin: 3rem 0 0.6rem;
+  }
+  a { color: var(--pink); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  :focus-visible { outline: 2px solid var(--b); outline-offset: 2px; border-radius: 4px; }
+  :focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; border-radius: 4px; }
   p { margin: 0.6rem 0; }
 
-  /* Forms (rendered via form.as_p everywhere) */
   input[type="text"], input[type="url"], input[type="email"], input[type="password"],
   input[type="date"], input[type="number"], select, textarea {
     width: 100%; max-width: 30rem;
-    padding: 0.65rem 0.9rem;
+    padding: 0.7rem 1rem;
     border: 1px solid var(--line);
     border-radius: 12px;
     background: var(--surface);
     color: var(--ink);
     font: inherit;
   }
-  input:focus, select:focus, textarea:focus { border-color: var(--b); outline: none; }
-  label { color: var(--ink-dim); font-size: 0.92rem; }
+  input:focus, select:focus, textarea:focus { border-color: var(--pink); outline: none; }
+  label { color: var(--ink-dim); font-size: 0.88rem; }
   input[type="file"] { font: inherit; color: var(--ink-dim); }
-  input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+  input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--pink); }
 }
 
 @layer components {
-  /* Header: frosted, sticky, hairline bottom */
+  /* Header: black glass, hairline */
   header.site {
     position: sticky; top: 0; z-index: 40;
-    display: flex; align-items: center; gap: 1.25rem;
-    padding: 0.65rem 1.5rem;
+    display: flex; align-items: center; gap: 1.4rem;
+    padding: 0.8rem 1.5rem;
     background: var(--header-bg);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--line);
   }
-  header.site nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
-  header.site nav a { color: var(--ink); font-size: 0.95rem; opacity: 0.85; }
-  header.site nav a:hover { opacity: 1; text-decoration: none; color: var(--b); }
+  header.site nav { display: flex; gap: 1.3rem; flex-wrap: wrap; }
+  header.site nav a {
+    color: var(--ink-mute);
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+  header.site nav a:hover { color: var(--ink); text-decoration: none; }
   .spacer { flex: 1; }
 
-  /* Wordmark: the RGB signature, kept (brand semantics), tightened. */
-  .wordmark { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.01em; }
-  .wordmark .c { color: var(--r); } .wordmark .s { color: var(--g); } .wordmark .u { color: var(--b); }
-
-  /* Tri-bar: shrunk to a quiet accent rule under headings. */
-  .tribar { display: flex; gap: 3px; height: 3px; width: 72px; margin: 0 0 1.1rem; }
-  .tribar span { flex: 1; border-radius: 2px; }
-  .tribar span:nth-child(1) { background: var(--r); }
-  .tribar span:nth-child(2) { background: var(--g); }
-  .tribar span:nth-child(3) { background: var(--b); }
-
-  /* Cards: large radius, hairline, barely-there shadow */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 1.1rem 1.35rem;
-    margin: 0.85rem 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  /* Wordmark: pink gradient signature */
+  .wordmark {
+    font-family: "Cabinet Grotesk", system-ui, sans-serif;
+    font-weight: 800; font-size: 1.25rem; letter-spacing: -0.02em;
+  }
+  .wordmark .c, .wordmark .s, .wordmark .u {
+    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-2) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 
-  /* Buttons: Apple pills. Filled = primary action, .quiet = gray pill. */
+  /* Tri-bar -> gradient accent rule */
+  .tribar { display: flex; height: 3px; width: 64px; margin: 0 0 1.2rem; border-radius: 2px; overflow: hidden; }
+  .tribar span { flex: 1; background: linear-gradient(90deg, var(--pink), var(--pink-2)); }
+
+  /* Glass cards */
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 1.25rem 1.5rem;
+    margin: 0.9rem 0;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Buttons: gradient primary, ghost quiet */
   .btn {
     display: inline-block;
-    padding: 0.5rem 1.15rem;
+    padding: 0.55rem 1.2rem;
     border: none;
-    border-radius: 980px;
-    background: var(--accent);
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--pink-2) 100%);
     color: var(--accent-ink);
-    font: inherit; font-size: 0.95rem; font-weight: 500;
+    font: inherit; font-size: 0.9rem; font-weight: 700;
     cursor: pointer;
-    transition: filter 0.15s ease, transform 0.05s ease;
+    box-shadow: 0 4px 14px rgba(255, 46, 149, 0.18);
+    transition: box-shadow 0.2s ease, transform 0.05s ease;
   }
-  .btn:hover { filter: brightness(1.08); text-decoration: none; }
+  .btn:hover { box-shadow: 0 4px 20px rgba(255, 46, 149, 0.35); text-decoration: none; }
   .btn:active { transform: scale(0.98); }
   .btn.quiet {
-    background: transparent;
-    color: var(--b);
+    background: var(--surface);
+    color: var(--ink-dim);
     border: 1px solid var(--line);
+    box-shadow: none;
   }
-  .btn.quiet:hover { background: color-mix(in srgb, var(--b) 8%, transparent); filter: none; }
-  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.quiet:hover { color: var(--ink); border-color: var(--ink-mute); box-shadow: none; }
+  .btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
   a.btn { color: var(--accent-ink); }
-  a.btn.quiet { color: var(--b); }
+  a.btn.quiet { color: var(--ink-dim); }
+  a.btn.quiet:hover { color: var(--ink); }
   .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 1.2rem 0; }
 
   /* Tables inside cards */
   .card table { width: 100%; border-collapse: collapse; }
   .card th {
-    text-align: left; font-size: 0.78rem; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    color: var(--ink-dim);
-    padding: 0.35rem 0.75rem 0.6rem 0;
+    text-align: left;
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    padding: 0.3rem 0.75rem 0.55rem 0;
     border-bottom: 1px solid var(--line);
   }
-  .card td { padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(--line); }
+  .card td { padding: 0.65rem 0.75rem 0.65rem 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
   .card tr:last-child td { border-bottom: none; }
   .num { font-variant-numeric: tabular-nums; color: var(--ink-dim); }
-  .conf { font-size: 0.82rem; color: var(--ink-dim); text-transform: lowercase; }
+  .conf {
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-mute);
+  }
 
-  /* Staleness chips: small dots, semantic colors */
+  /* Status chips: sketch's badge language shrunk to dots-with-halo */
   .chip {
-    display: inline-block; width: 0.65rem; height: 0.65rem;
+    display: inline-block; width: 0.6rem; height: 0.6rem;
     border-radius: 50%; vertical-align: middle;
   }
-  .chip.green { background: var(--g); }
-  .chip.yellow { background: var(--y); }
-  .chip.red { background: var(--r); }
+  .chip.green { background: var(--g); box-shadow: 0 0 0 3px color-mix(in srgb, var(--g) 15%, transparent); }
+  .chip.yellow { background: var(--y); box-shadow: 0 0 0 3px color-mix(in srgb, var(--y) 15%, transparent); }
+  .chip.red { background: var(--r); box-shadow: 0 0 0 3px color-mix(in srgb, var(--r) 15%, transparent); }
 
-  .empty { color: var(--ink-dim); }
+  /* Status badges (sketch component; available for templates as they evolve) */
+  .badge {
+    display: inline-block;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0.2rem 0.65rem;
+    border-radius: 980px;
+  }
+  .badge.active { color: var(--g); background: color-mix(in srgb, var(--g) 10%, transparent); border: 1px solid color-mix(in srgb, var(--g) 20%, transparent); }
+  .badge.expiring { color: var(--y); background: color-mix(in srgb, var(--y) 10%, transparent); border: 1px solid color-mix(in srgb, var(--y) 20%, transparent); }
+  .badge.stale { color: var(--r); background: color-mix(in srgb, var(--r) 10%, transparent); border: 1px solid color-mix(in srgb, var(--r) 20%, transparent); }
+
+  .empty { color: var(--ink-mute); }
   .data {
     font-family: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
-    font-size: 0.85rem; color: var(--ink-dim);
+    font-size: 0.82rem; color: var(--ink-dim);
     overflow-wrap: anywhere;
   }
-  .messages {
-    list-style: none; margin: 0 0 1.2rem; padding: 0;
-  }
+  .messages { list-style: none; margin: 0 0 1.2rem; padding: 0; }
   .messages li {
-    background: color-mix(in srgb, var(--b) 10%, var(--surface));
-    border: 1px solid color-mix(in srgb, var(--b) 25%, transparent);
-    border-radius: 12px; padding: 0.6rem 1rem; margin: 0.4rem 0;
-    font-size: 0.95rem;
+    background: color-mix(in srgb, var(--pink) 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--pink) 25%, transparent);
+    border-radius: 14px; padding: 0.6rem 1rem; margin: 0.4rem 0;
+    font-size: 0.92rem;
   }
 
-  /* Import group: aligned, uniform pills in a responsive grid */
-  .import-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: 0.6rem; }
+  /* Import group */
+  .import-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: 0.7rem; }
   .import-grid .btn, .import-grid form { width: 100%; }
   .import-grid form .btn { width: 100%; }
   .import-grid .btn { text-align: center; }
@@ -183,8 +230,8 @@
   /* Planned certifications */
   .planned-cert .planned-head { display: flex; align-items: center; gap: 0.75rem; }
   .planned-cert .planned-head .plan-form { margin-left: auto; }
-  .planned-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin-top: 0.5rem; font-size: 0.92rem; color: var(--ink-dim); }
-  .planned-facts [data-compat] { color: var(--ink); }
+  .planned-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin-top: 0.55rem; font-size: 0.88rem; color: var(--ink-mute); }
+  .planned-facts [data-compat] { color: var(--ink-dim); }
   .planned-facts [data-compat="renews-yours"] { color: var(--g); }
   .plan-form { display: inline; margin: 0.4rem 0 1rem; }
 }
