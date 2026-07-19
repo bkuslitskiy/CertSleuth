@@ -11,7 +11,12 @@ from . import discovery
 from .models import ExtractionJob, StagedChange, WorkerToken
 from .schemas import ExtractionResult
 
-LEASE_MINUTES = 30
+# Lease = crash recovery, not recrawl cadence (that's Source.CADENCE_BY_STATUS, 7-365
+# days). Operator extraction legitimately takes hours between fetch and submit; the old
+# 30-minute lease expired mid-session and the requeued jobs then starved never-claimed
+# ones (claim ordered by pk, and requeues have lower pks). 24h covers a working session
+# while still freeing genuinely-abandoned jobs by the next day's run.
+LEASE_MINUTES = 60 * 24
 
 
 def _auth(request):
@@ -34,9 +39,12 @@ def claim(request):
     ExtractionJob.objects.filter(status=ExtractionJob.Status.LEASED,
                                  lease_expires_at__lt=now).update(
         status=ExtractionJob.Status.QUEUED, leased_by="")
-    jobs = list(ExtractionJob.objects.select_for_update(skip_locked=True)
-                .filter(status=ExtractionJob.Status.QUEUED)[:n]) if _pg() else \
-           list(ExtractionJob.objects.filter(status=ExtractionJob.Status.QUEUED)[:n])
+    # Never-leased jobs first (lease_expires_at is NULL until first lease), then
+    # expired-lease requeues — so churn on old jobs can't starve fresh ones.
+    from django.db.models import F
+    fresh_first = (F("lease_expires_at").asc(nulls_first=True), "pk")
+    base = ExtractionJob.objects.filter(status=ExtractionJob.Status.QUEUED).order_by(*fresh_first)
+    jobs = list(base.select_for_update(skip_locked=True)[:n]) if _pg() else list(base[:n])
     out = []
     for j in jobs:
         j.status = ExtractionJob.Status.LEASED
