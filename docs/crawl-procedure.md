@@ -65,6 +65,10 @@ cert pages (SEC-019).
 
 - Depth ≤ **4** from seed (providers nest cert detail deep behind categories).
 - ≤ **50** new pages per domain per run.
+- **English only** (2026-07-19): a path segment that parses as a non-English locale code
+  (`/ja-jp/`, `/de_DE/`, `/es/`) drops the link — providers duplicate content per locale
+  and the frontier was multiplying. Blocklist-based so short non-locale segments like
+  CompTIA's `/ce/` can't be misread (`crawl.is_english_url`).
 
 ## Rendering
 

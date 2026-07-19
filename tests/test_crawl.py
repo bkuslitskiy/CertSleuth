@@ -81,3 +81,28 @@ def test_visible_text_len_ignores_markup_and_scripts():
     assert crawl.visible_text_len(shell) < 20            # JS-heavy shell -> tiny visible text
     real = '<p>' + 'word ' * 200 + '</p>'
     assert crawl.visible_text_len(real) > 500
+
+
+# --- English-only frontier (operator decision 2026-07-19) ---
+
+def test_non_english_locale_urls_dropped():
+    assert not crawl.is_english_url("https://learn.microsoft.com/ja-jp/credentials/certifications/x")
+    assert not crawl.is_english_url("https://www.isaca.org/es/credentialing/cism")
+    assert not crawl.is_english_url("https://www.cisco.com/c/de_de/training/certification.html")
+    assert not crawl.is_english_url("https://example.com/zh-cn/certification")
+
+
+def test_english_and_non_locale_segments_kept():
+    assert crawl.is_english_url("https://learn.microsoft.com/en-us/credentials/certifications/x")
+    assert crawl.is_english_url("https://www.comptia.org/en-us/resources/ce/why-renew")
+    # 'ce' is CompTIA's Continuing Education path, not a locale — must never be dropped
+    assert crawl.is_english_url("https://www.comptia.org/resources/ce/renewal-options")
+    assert crawl.is_english_url("https://www.giac.org/renewal/cpe-information")
+
+
+def test_scan_links_filters_locale_duplicates():
+    html = ('<a href="/en-us/credentials/certifications/azure-admin">en</a>'
+            '<a href="/ja-jp/credentials/certifications/azure-admin">ja</a>'
+            '<a href="/de-de/credentials/certifications/azure-admin">de</a>')
+    links = crawl.scan_links(html, "https://learn.microsoft.com/")
+    assert links == ["https://learn.microsoft.com/en-us/credentials/certifications/azure-admin"]

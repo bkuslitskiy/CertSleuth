@@ -13,6 +13,28 @@ from urllib.parse import urljoin, urlparse, urlunparse
 PATH_KEYWORDS = ("renew", "recert", "cpe", "ceu", "pdu", "maintain",
                  "certification", "cert", "policy", "credential")
 
+# English-only crawling (operator decision 2026-07-19): providers publish the same
+# content under locale path segments (/ja-jp/, /de-de/, /es/), which multiplied the
+# frontier with duplicates. A path segment that parses as a locale whose language isn't
+# English drops the URL. Blocklist (not "everything non-en") so short non-locale segments
+# like CompTIA's /ce/ can never be misread as a language.
+_LOCALE_SEG = re.compile(r"^([a-z]{2})(?:[-_]([a-z]{2,4}))?$", re.I)
+_NON_ENGLISH_LANGS = {
+    "ar", "bg", "bn", "ca", "cs", "da", "de", "el", "es", "et", "fa", "fi", "fr",
+    "he", "hi", "hr", "hu", "id", "it", "ja", "ko", "lt", "lv", "ms", "nb", "nl",
+    "no", "pl", "pt", "ro", "ru", "sk", "sl", "sr", "sv", "ta", "th", "tr", "uk",
+    "ur", "vi", "zh",
+}
+
+
+def is_english_url(url):
+    """False when any path segment is a non-English locale code (ja-jp, de_DE, /fr/)."""
+    for seg in urlparse(url).path.split("/"):
+        m = _LOCALE_SEG.match(seg)
+        if m and m.group(1).lower() in _NON_ENGLISH_LANGS:
+            return False
+    return True
+
 _SCRIPT_STYLE_RE = re.compile(r'<(script|style)\b[^>]*>.*?</\1>', re.I | re.S)
 _TAG_RE = re.compile(r'<[^>]+>')
 _HREF_RE = re.compile(r'<a\b[^>]*\bhref=["\']([^"\'#]+)', re.I)
@@ -103,6 +125,8 @@ def scan_links(html, base_url):
             continue
         if not same_domain(base_url, url):
             continue                                   # cross-domain: dropped entirely
+        if not is_english_url(url):
+            continue                                   # locale duplicate: dropped
         if not any(k in p.path.lower() for k in PATH_KEYWORDS):
             continue
         norm = normalize(url)
