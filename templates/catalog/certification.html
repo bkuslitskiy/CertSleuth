@@ -2,8 +2,14 @@
 {% block title %}{{ cert.name }} — CertSleuth{% endblock %}
 {% block content %}
 <p><a href="{% url 'catalog_provider' cert.provider.slug %}">&larr; {{ cert.provider.name }}</a></p>
-<h1>{{ cert.name }}</h1>
+<h1>{{ cert.name }}
+  {% if cert.status == 'retired' %}<span class="badge stale" title="No longer attainable{% if cert.retired_date %} — retired {{ cert.retired_date }}{% endif %}">Retired</span>{% endif %}
+</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
+{% if cert.status == 'retired' %}
+<p class="empty">This certification is no longer attainable from {{ cert.provider.name }}.
+If you already hold it, your renewal tracking still applies.</p>
+{% endif %}
 <form method="post" action="{% url 'plan_toggle' cert.pk %}" class="plan-form">
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ request.path }}">

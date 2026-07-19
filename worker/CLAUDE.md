@@ -12,6 +12,10 @@ Append to `results.jsonl`, one JSON object per extracted fact:
  "payload": {...}, "extractor": "claude-code-local", "snapshot_hash": "<from manifest>"}
 
 Payload fields per kind: see `schema.py` in this directory. Rules:
+- certification lifecycle: emit `"status": "retired"` (+ `retired_date` if stated) ONLY
+  when the page states the cert is no longer attainable (retired/discontinued/replaced).
+  Never emit `status` on ordinary cert pages — absence means "no lifecycle claim", and
+  publish deliberately ignores missing status so re-crawls can't resurrect retirements.
 - upgrade_path effect vocabulary: "renews" | "waives_fee" | "supersedes" | "requires".
   Direction: earning `to_certification_slug` acts on `from_certification_slug`.
   "requires" = prerequisite (A-CSM requires CSM -> from=csm, to=a-csm). Emit it when the

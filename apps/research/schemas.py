@@ -50,6 +50,10 @@ class CertificationPayload(BaseModel):
     level: str = ""
     exam_cost_usd: float | None = None
     validity_years: int | None = None
+    # "retired" = no longer attainable (holders may still track it). Emit only when the
+    # page states retirement; absent means no lifecycle claim (publish won't touch it).
+    status: Literal["active", "retired"] | None = None
+    retired_date: str | None = None          # ISO date, when stated
     external_ids: dict[str, str] = {}
 
 

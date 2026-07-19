@@ -48,3 +48,11 @@ def test_bad_confidence_rejected():
     bad["payload"] = {**bad["payload"], "confidence": "vibes"}
     with pytest.raises(Exception):
         ExtractionResult(**bad).validated_payload()
+
+
+def test_retired_certification_round_trips():
+    sample = {"job_id": 6, "kind": "certification", "extractor": "claude-code-local",
+              "payload": {"provider_slug": "comptia", "slug": "old-cert",
+                          "name": "Old Cert", "status": "retired",
+                          "retired_date": "2026-01-01"}}
+    assert ExtractionResult(**sample).validated_payload()["status"] == "retired"

@@ -24,6 +24,7 @@ def validate_line(obj):
         assert p.get("confidence", "commonly_accepted") in CONF
     if obj["kind"] == "certification":
         assert p.get("provider_slug") and p.get("slug") and p.get("name")
+        assert p.get("status") in (None, "active", "retired"), "bad lifecycle status"
     if obj["kind"] == "free_offer":
         assert p.get("title") and p.get("url")
 

@@ -158,6 +158,19 @@
   .chip.yellow { background: var(--y); }
   .chip.red { background: var(--r); }
 
+  /* Status badges (lifecycle: retired certs, expiring warnings) */
+  .badge {
+    display: inline-block;
+    font-size: 0.68rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.18rem 0.6rem;
+    border-radius: 980px;
+    vertical-align: middle;
+  }
+  .badge.active { color: var(--g); background: color-mix(in srgb, var(--g) 12%, transparent); }
+  .badge.expiring { color: var(--y); background: color-mix(in srgb, var(--y) 12%, transparent); }
+  .badge.stale { color: var(--r); background: color-mix(in srgb, var(--r) 12%, transparent); }
+
   .empty { color: var(--ink-dim); }
   .data {
     font-family: ui-monospace, "SF Mono", "Cascadia Mono", monospace;

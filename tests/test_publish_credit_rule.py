@@ -52,3 +52,18 @@ def test_unknown_kind_raises_instead_of_silent_approve(staged_factory, approver)
         publish(staged, approver)
     staged.refresh_from_db()
     assert staged.status == StagedChange.Status.PENDING   # untouched, still reviewable
+
+
+def test_retired_status_publishes_and_recrawl_does_not_resurrect(staged_factory, approver):
+    from apps.catalog.models import Certification
+    Provider.objects.create(name="CompTIA", slug="comptia")
+    publish(staged_factory("certification", {
+        "provider_slug": "comptia", "slug": "old", "name": "Old Cert",
+        "status": "retired", "retired_date": "2026-01-01"}), approver)
+    cert = Certification.objects.get(slug="old")
+    assert cert.status == "retired" and str(cert.retired_date) == "2026-01-01"
+    # a later ordinary re-crawl fact (no status field) must not resurrect it
+    publish(staged_factory("certification", {
+        "provider_slug": "comptia", "slug": "old", "name": "Old Cert"}), approver)
+    cert.refresh_from_db()
+    assert cert.status == "retired"

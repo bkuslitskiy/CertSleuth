@@ -63,9 +63,17 @@ class Provider(models.Model):
 
 
 class Certification(models.Model):
+    class Lifecycle(models.TextChoices):
+        ACTIVE = "active", "Active (attainable)"
+        # No longer attainable from the provider; existing holders keep tracking it
+        # (renewal rules may still apply, upgrade edges may point at successors).
+        RETIRED = "retired", "Retired"
+
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name="certifications")
     name = models.CharField(max_length=200)
     slug = models.SlugField()
+    status = models.CharField(max_length=10, choices=Lifecycle.choices, default=Lifecycle.ACTIVE)
+    retired_date = models.DateField(null=True, blank=True)
     level = models.CharField(max_length=80, blank=True)
     exam_cost_usd = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     validity_years = models.PositiveSmallIntegerField(null=True, blank=True)

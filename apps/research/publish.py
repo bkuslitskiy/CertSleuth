@@ -9,12 +9,18 @@ def publish(staged, reviewer):
     if staged.kind == "certification":
         provider, _ = Provider.objects.get_or_create(slug=p["provider_slug"],
                                                      defaults={"name": p["provider_slug"].title()})
+        defaults = {"name": p["name"], "level": p.get("level", ""),
+                    "exam_cost_usd": p.get("exam_cost_usd"),
+                    "validity_years": p.get("validity_years"),
+                    "external_ids": p.get("external_ids", {})}
+        # Lifecycle only changes when the fact asserts it — an ordinary re-crawl of a
+        # cert page must never silently resurrect or retire a certification.
+        if p.get("status"):
+            defaults["status"] = p["status"]
+            if p.get("retired_date"):
+                defaults["retired_date"] = p["retired_date"]
         Certification.objects.update_or_create(
-            provider=provider, slug=p["slug"],
-            defaults={"name": p["name"], "level": p.get("level", ""),
-                      "exam_cost_usd": p.get("exam_cost_usd"),
-                      "validity_years": p.get("validity_years"),
-                      "external_ids": p.get("external_ids", {})})
+            provider=provider, slug=p["slug"], defaults=defaults)
     elif staged.kind == "renewal_rule":
         cert = Certification.objects.get(provider__slug=p["provider_slug"],
                                          slug=p["certification_slug"])
