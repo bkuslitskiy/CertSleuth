@@ -2,11 +2,13 @@
 {% block content %}
 <h1>Import from {{ label }}</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
+{% if form %}
 <form method="post" {% if kind == "file" %}enctype="multipart/form-data"{% endif %}>
   {% csrf_token %}
   {{ form.as_p }}
   <button class="btn">{% if kind == "file" %}Upload{% else %}Look up{% endif %}</button>
 </form>
+{% endif %}
 {% if matches is not None %}
 {% if matches %}
 <h2>Found</h2>

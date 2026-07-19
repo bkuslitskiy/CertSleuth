@@ -27,7 +27,9 @@
   <a class="btn quiet" href="{% url 'import_source' 'accredible' %}">Accredible</a>
   <a class="btn quiet" href="{% url 'import_source' 'openbadges' %}">Open Badge file</a>
   <a class="btn quiet" href="{% url 'import_source' 'linkedin' %}">LinkedIn CSV</a>
-  {% if user.gmail_scan_enabled %}
+  {% if has_approved_scan %}
+  <a class="btn" href="{% url 'gmail_scan_run' %}">Run approved inbox scan</a>
+  {% elif user.gmail_scan_enabled %}
   <form method="post" action="{% url 'request_gmail_scan' %}" style="display:inline">
     {% csrf_token %}<button class="btn quiet">Scan my inbox</button></form>
   {% else %}<a class="btn quiet" href="{% url 'gmail_enrollment' %}">Enable inbox scanning</a>{% endif %}

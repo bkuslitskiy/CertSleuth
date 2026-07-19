@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from .models import UserCertification
 from .forms import (UserCertificationForm, ActivityForm, CredlyImportForm,
@@ -145,6 +146,63 @@ def request_gmail_scan(request):
         GmailScanRequest.objects.create(user=request.user)
         messages.success(request, "Scan requested — it runs after an approver signs off.")
     return redirect("dashboard")
+
+
+@login_required
+def gmail_scan_run(request):
+    """Kick off the consent round-trip for the user's APPROVED scan (SEC-013: only an
+    approved request gets this far; SEC-020: token handled inside one request cycle)."""
+    from apps.research.models import GmailScanRequest
+    from . import gmail
+    if not gmail.is_configured():
+        messages.error(request, "Inbox scanning isn't configured on this server.")
+        return redirect("dashboard")
+    scan = (GmailScanRequest.objects
+            .filter(user=request.user, status=GmailScanRequest.Status.APPROVED)
+            .order_by("-created_at").first())
+    if scan is None:
+        messages.error(request, "No approved scan to run — request one first.")
+        return redirect("dashboard")
+    return redirect(gmail.auth_url(request, scan))
+
+
+@login_required
+def gmail_scan_callback(request):
+    """Google redirects here with ?code=&state=. The token is exchanged, used for one
+    bounded pass, and discarded within this request (never stored, SEC-003). GET renders
+    the preview; the confirm POST reuses the shared importer confirm handler."""
+    from django.core import signing as _signing
+    from apps.research.models import GmailScanRequest
+    from . import gmail
+    if request.method == "POST" and "confirm" in request.POST:
+        created, queued = importers.confirm_import(request)
+        msg = f"Imported {created} certification(s) from your inbox."
+        if queued:
+            msg += f" Queued {queued} unmatched credential(s) for research."
+        messages.success(request, msg)
+        return redirect("dashboard")
+    code, state = request.GET.get("code"), request.GET.get("state")
+    if not code or not state:
+        messages.error(request, "Google didn't complete the consent hand-off.")
+        return redirect("dashboard")
+    try:
+        scan_pk = gmail.read_state(state, request.user)
+        scan = GmailScanRequest.objects.get(pk=scan_pk, user=request.user)
+        token = gmail.exchange_code(
+            code, request.build_absolute_uri(reverse("gmail_scan_callback")))
+        items = gmail.run_scan(scan, token)
+        del token                                   # one pass, then gone (SEC-003)
+    except _signing.BadSignature:
+        messages.error(request, "That consent link is stale or not yours — start again.")
+        return redirect("dashboard")
+    except (httpx.HTTPError, gmail.GmailNotConfigured, ValueError,
+            GmailScanRequest.DoesNotExist) as e:
+        messages.error(request, f"Scan failed before reading any mail: {e}")
+        return redirect("dashboard")
+    matches = importers.match_catalog(items)
+    return render(request, "dashboard/import_preview.html",
+                  {"form": None, "matches": matches, "label": "Gmail",
+                   "source": "gmail", "kind": "gmail"})
 
 
 def ics_feed(request, token):

@@ -15,5 +15,9 @@ def dashboard(request):
         uc.chip = staleness(rule.last_verified_at) if rule else "red"
     offers = FreeOffer.objects.filter(status="active").order_by("-created_at")[:5]
     recent = Activity.objects.filter(user=request.user).order_by("-date")[:5]
+    from apps.research.models import GmailScanRequest
+    has_approved_scan = GmailScanRequest.objects.filter(
+        user=request.user, status=GmailScanRequest.Status.APPROVED).exists()
     return render(request, "dashboard/index.html",
-                  {"held": held, "offers": offers, "recent": recent})
+                  {"held": held, "offers": offers, "recent": recent,
+                   "has_approved_scan": has_approved_scan})
