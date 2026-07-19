@@ -25,6 +25,9 @@ class Source(models.Model):
     CADENCE_BY_STATUS = {"active": 7, "hub": 30, "barren": 180, "needs_render": 365, "dead": 365}
 
     url = models.URLField(unique=True, max_length=500)
+    # Registrable domain, auto-set on save. Powers domain-interleaved job claims
+    # (politeness: a claim batch alternates across sites) and admin filtering.
+    domain = models.CharField(max_length=120, blank=True, db_index=True)
     cadence_days = models.PositiveSmallIntegerField(default=7)  # weekly rules, daily offers
     scheduled = models.BooleanField(default=False)  # D16: only Approver-promoted sources auto-crawl
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
@@ -38,6 +41,12 @@ class Source(models.Model):
                                         on_delete=models.SET_NULL, related_name="discovered")
     depth = models.PositiveSmallIntegerField(default=0)           # hops from a seed
     submitted_by = models.ForeignKey("accounts.User", null=True, blank=True, on_delete=models.SET_NULL)
+
+    def save(self, *args, **kwargs):
+        if not self.domain:
+            from apps.core.domains import registrable_domain
+            self.domain = registrable_domain(self.url)[:120]
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.url

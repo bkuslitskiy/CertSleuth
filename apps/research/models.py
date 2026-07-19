@@ -97,18 +97,10 @@ class SourceSubmission(models.Model):
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    @staticmethod
-    def registrable_domain(url):
-        """Best-effort eTLD+1, mirroring worker/crawl.py registrable_domain (the worker
-        stays stdlib-standalone, so the two-line logic is duplicated, not imported)."""
-        from urllib.parse import urlparse
-        host = (urlparse(url).netloc or "").lower().split(":")[0]
-        parts = [p for p in host.split(".") if p]
-        return ".".join(parts[-2:]) if len(parts) >= 2 else host
-
     def save(self, *args, **kwargs):
         if not self.domain:
-            self.domain = self.registrable_domain(self.url)[:120]
+            from apps.core.domains import registrable_domain
+            self.domain = registrable_domain(self.url)[:120]
         super().save(*args, **kwargs)
 
     def __str__(self):

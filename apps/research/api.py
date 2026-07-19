@@ -40,11 +40,20 @@ def claim(request):
                                  lease_expires_at__lt=now).update(
         status=ExtractionJob.Status.QUEUED, leased_by="")
     # Never-leased jobs first (lease_expires_at is NULL until first lease), then
-    # expired-lease requeues — so churn on old jobs can't starve fresh ones.
+    # expired-lease requeues — so churn on old jobs can't starve fresh ones. Within each
+    # tier, interleave across source domains: a claim batch alternates between sites
+    # instead of hammering one (the worker's politeness delay then spaces out same-domain
+    # hits by a full round). Window of n*10 candidates keeps the query bounded.
     from django.db.models import F
     fresh_first = (F("lease_expires_at").asc(nulls_first=True), "pk")
-    base = ExtractionJob.objects.filter(status=ExtractionJob.Status.QUEUED).order_by(*fresh_first)
-    jobs = list(base.select_for_update(skip_locked=True)[:n]) if _pg() else list(base[:n])
+    base = (ExtractionJob.objects.filter(status=ExtractionJob.Status.QUEUED)
+            .order_by(*fresh_first).select_related("source"))
+    window = max(n * 10, 100)
+    cand = list(base.select_for_update(skip_locked=True, of=("self",))[:window]) if _pg() \
+        else list(base[:window])
+    fresh = [j for j in cand if j.lease_expires_at is None]
+    retry = [j for j in cand if j.lease_expires_at is not None]
+    jobs = (_interleave_by_domain(fresh) + _interleave_by_domain(retry))[:n]
     out = []
     for j in jobs:
         j.status = ExtractionJob.Status.LEASED
@@ -60,6 +69,24 @@ def claim(request):
 def _pg():
     from django.db import connection
     return connection.vendor == "postgresql"
+
+
+def _interleave_by_domain(jobs):
+    """Round-robin jobs across their source domains, preserving arrival order within a
+    domain and first-seen order across domains."""
+    from collections import defaultdict, deque
+    queues, order = defaultdict(deque), []
+    for j in jobs:
+        d = j.source.domain
+        if d not in queues:
+            order.append(d)
+        queues[d].append(j)
+    out = []
+    while len(out) < len(jobs):
+        for d in order:
+            if queues[d]:
+                out.append(queues[d].popleft())
+    return out
 
 
 @csrf_exempt

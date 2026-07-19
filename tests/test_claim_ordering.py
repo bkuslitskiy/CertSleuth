@@ -54,6 +54,28 @@ def test_expired_lease_requeues_and_is_claimable(token):
     assert [j["job_id"] for j in got] == [old.pk]
 
 
+def test_claims_interleave_across_domains(token):
+    # 3 jobs on aaa.test then 2 on bbb.test: a claim batch must alternate sites, not
+    # burst one domain (politeness — worker's delay then spaces same-domain hits).
+    for i in range(3):
+        _job(f"https://www.aaa.test/p{i}")
+    for i in range(2):
+        _job(f"https://www.bbb.test/p{i}")
+    got = Client().post("/api/worker/jobs/claim?n=5", **AUTH).json()["jobs"]
+    domains = ["aaa" if "aaa" in j["source_url"] else "bbb" for j in got]
+    assert domains == ["aaa", "bbb", "aaa", "bbb", "aaa"]
+
+
+def test_interleave_respects_fresh_before_expired(token):
+    old = _job("https://www.aaa.test/expired", leased_ago_minutes=10)
+    fresh_b = _job("https://www.bbb.test/new")
+    fresh_a = _job("https://www.aaa.test/new")
+    got = Client().post("/api/worker/jobs/claim?n=3", **AUTH).json()["jobs"]
+    ids = [j["job_id"] for j in got]
+    assert set(ids[:2]) == {fresh_b.pk, fresh_a.pk}   # both fresh first, either order
+    assert ids[2] == old.pk                            # expired requeue last
+
+
 def test_lease_is_a_day_not_half_an_hour(token):
     from apps.research.api import LEASE_MINUTES
     assert LEASE_MINUTES == 60 * 24
