@@ -71,7 +71,9 @@ def test_retired_status_publishes_and_recrawl_does_not_resurrect(staged_factory,
 
 def test_abbreviation_publishes_and_absence_preserves(staged_factory, approver):
     from apps.catalog.models import Certification
-    Provider.objects.create(name="PMI", slug="pmi")
+    # get_or_create: migration 0010 pre-seeds "pmi" with a display name, so the row may
+    # already exist. The test only needs the provider present, not freshly created.
+    Provider.objects.get_or_create(slug="pmi", defaults={"name": "PMI"})
     publish(staged_factory("certification", {
         "provider_slug": "pmi", "slug": "pmp", "name": "Project Management Professional",
         "abbreviation": "PMP"}), approver)
