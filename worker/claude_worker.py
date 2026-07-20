@@ -116,10 +116,12 @@ def _fetch_one(url, prior, renderer=None):
         # to execute this page's JS anyway had the raw fetch succeeded.
         if e.code in (403, 429) and renderer is not None:
             status, html, _ = renderer.render(url, headers={"User-Agent": USER_AGENT})
-            if status == 200 and html:
+            # Any 2xx with content counts: some CDNs answer the rendered document
+            # request with 202 while still serving the full page (scrum.org).
+            if status and 200 <= status < 300 and html:
                 content = html.encode("utf-8", "replace")
                 text = content.decode("utf-8", "replace")
-                return ({"http_status": 200, "etag": "", "last_modified": "",
+                return ({"http_status": status, "etag": "", "last_modified": "",
                          "snapshot_hash": hashlib.sha256(content).hexdigest(),
                          "canonical": crawl.extract_canonical(text, url),
                          "discovered_links": crawl.scan_links(text, url),
@@ -132,7 +134,7 @@ def _fetch_one(url, prior, renderer=None):
     rendered = False
     if renderer is not None:
         status, html, _ = renderer.render(url, headers={"User-Agent": USER_AGENT})
-        if status == 200 and html:
+        if status and 200 <= status < 300 and html:
             content, rendered = html.encode("utf-8", "replace"), True
     text = content.decode("utf-8", "replace")
     return ({"http_status": 200, "etag": etag, "last_modified": last_mod,

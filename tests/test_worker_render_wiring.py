@@ -80,6 +80,15 @@ def test_falls_back_when_render_returns_non_200(monkeypatch):
     assert content == RAW
 
 
+def test_render_2xx_with_content_is_accepted(monkeypatch):
+    # scrum.org's CDN answers the rendered document request with 202 + the full page;
+    # any 2xx with content is a successful render, not a failure to fall back from.
+    _ok(monkeypatch)
+    report, content = cw._fetch_one("https://x.test/a", {}, _Renderer(status=202))
+    assert report["rendered"] is True
+    assert b"content the JS built" in content
+
+
 def test_no_renderer_reports_rendered_false(monkeypatch):
     _ok(monkeypatch)
     report, _ = cw._fetch_one("https://x.test/a", {}, None)
