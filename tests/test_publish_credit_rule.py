@@ -67,3 +67,16 @@ def test_retired_status_publishes_and_recrawl_does_not_resurrect(staged_factory,
         "provider_slug": "comptia", "slug": "old", "name": "Old Cert"}), approver)
     cert.refresh_from_db()
     assert cert.status == "retired"
+
+
+def test_abbreviation_publishes_and_absence_preserves(staged_factory, approver):
+    from apps.catalog.models import Certification
+    Provider.objects.create(name="PMI", slug="pmi")
+    publish(staged_factory("certification", {
+        "provider_slug": "pmi", "slug": "pmp", "name": "Project Management Professional",
+        "abbreviation": "PMP"}), approver)
+    assert Certification.objects.get(slug="pmp").abbreviation == "PMP"
+    publish(staged_factory("certification", {
+        "provider_slug": "pmi", "slug": "pmp",
+        "name": "Project Management Professional"}), approver)   # re-crawl, no claim
+    assert Certification.objects.get(slug="pmp").abbreviation == "PMP"

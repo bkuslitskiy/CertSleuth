@@ -228,3 +228,15 @@ def test_unknown_slugs_404(client, user, scrum):
     client.force_login(user)
     assert client.get("/catalog/nope/").status_code == 404
     assert client.get("/catalog/scrum-alliance/nope/").status_code == 404
+
+
+def test_provider_page_sorts_by_abbreviation_and_shows_column(client, user, scrum):
+    p, csm, acsm = scrum
+    csm.abbreviation = "CSM"
+    csm.save()
+    acsm.abbreviation = "A-CSM"
+    acsm.save()
+    client.force_login(user)
+    body = client.get("/catalog/scrum-alliance/").content.decode()
+    assert "Abbrev." in body
+    assert body.index("A-CSM") < body.index(">CSM<")   # A-CSM alphabetizes first

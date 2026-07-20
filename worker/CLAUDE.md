@@ -12,6 +12,9 @@ Append to `results.jsonl`, one JSON object per extracted fact:
  "payload": {...}, "extractor": "claude-code-local", "snapshot_hash": "<from manifest>"}
 
 Payload fields per kind: see `schema.py` in this directory. Rules:
+- certification `abbreviation`: emit the short form when the page states one (CISM, PMP,
+  GSOA — often parenthesized after the name, or the page's own shorthand). Omit when the
+  page shows none; never invent initialisms.
 - certification lifecycle: emit `"status": "retired"` (+ `retired_date` if stated) ONLY
   when the page states the cert is no longer attainable (retired/discontinued/replaced).
   Never emit `status` on ordinary cert pages — absence means "no lifecycle claim", and

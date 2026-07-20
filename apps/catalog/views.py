@@ -26,8 +26,10 @@ def provider_list(request):
 @login_required
 def provider_detail(request, provider_slug):
     provider = get_object_or_404(Provider, slug=provider_slug)
-    certs = (provider.certifications.order_by("name")
-             .prefetch_related(Prefetch("renewal_rules")))
+    # Alphabetize on the short form when it exists — people scan for "CISM", not
+    # "Certified Information Security Manager" (Boris, 2026-07-19).
+    certs = sorted(provider.certifications.prefetch_related(Prefetch("renewal_rules")),
+                   key=lambda c: (c.abbreviation or c.name).lower())
     held_ids = {uc.certification_id for uc in _my_certs(request.user)}
     planned_ids = set(request.user.goals.values_list("certification_id", flat=True))
     rows = []

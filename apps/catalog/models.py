@@ -71,6 +71,9 @@ class Certification(models.Model):
 
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name="certifications")
     name = models.CharField(max_length=200)
+    # The short form people actually know (CISM, PMP, SAA). Display + alphabetical
+    # lookup; never keyed on (D26 — that's what slug/pk are for).
+    abbreviation = models.CharField(max_length=40, blank=True)
     slug = models.SlugField()
     status = models.CharField(max_length=10, choices=Lifecycle.choices, default=Lifecycle.ACTIVE)
     retired_date = models.DateField(null=True, blank=True)

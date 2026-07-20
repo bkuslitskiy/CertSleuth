@@ -5,9 +5,10 @@
 <h1>{{ provider.name }}</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
 <div class="card"><table>
-  <tr><th>Certification</th><th>Level</th><th>Renewal</th><th>Fee</th><th>Freshness</th><th></th></tr>
+  <tr><th>Abbrev.</th><th>Certification</th><th>Level</th><th>Renewal</th><th>Fee</th><th>Freshness</th><th></th></tr>
   {% for r in rows %}
   <tr>
+    <td class="num"><a href="{% url 'catalog_cert' provider.slug r.cert.slug %}">{{ r.cert.abbreviation|default:"—" }}</a></td>
     <td><a href="{% url 'catalog_cert' provider.slug r.cert.slug %}">{{ r.cert.name }}</a>
         {% if r.held %}<span class="chip green" title="You hold this"></span>{% endif %}
         {% if r.planned %}<span title="Planned">★</span>{% endif %}

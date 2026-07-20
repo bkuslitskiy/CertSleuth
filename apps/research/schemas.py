@@ -47,6 +47,7 @@ class CertificationPayload(BaseModel):
     provider_slug: str
     name: str
     slug: str
+    abbreviation: str = ""       # the short form people know (CISM, PMP); "" = no claim
     level: str = ""
     exam_cost_usd: float | None = None
     validity_years: int | None = None

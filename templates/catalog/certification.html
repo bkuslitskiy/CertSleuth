@@ -20,6 +20,7 @@ If you already hold it, your renewal tracking still applies.</p>
 
 <div class="card">
   <table>
+    <tr><th>Abbreviation</th><td>{{ cert.abbreviation|default:"—" }}</td></tr>
     <tr><th>Level</th><td>{{ cert.level|default:"—" }}</td></tr>
     <tr><th>Exam cost</th><td class="num">{% if cert.exam_cost_usd %}${{ cert.exam_cost_usd }}{% else %}—{% endif %}</td></tr>
     <tr><th>Validity</th><td class="num">{% if cert.validity_years %}{{ cert.validity_years }} years{% elif rule.cycle_years %}{{ rule.cycle_years }} years{% else %}—{% endif %}</td></tr>
