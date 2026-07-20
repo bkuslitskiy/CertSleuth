@@ -11,6 +11,10 @@ from config.settings import *  # noqa: E402,F403
 if not os.environ.get("DATABASE_URL"):
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]  # test speed only
+# SEC-021: config.settings sets AXES_IPWARE_PROXY_COUNT=1 when DEBUG is off (CI runs with
+# DEBUG=False). The test client sends no X-Forwarded-For, so resolve the client IP straight
+# from REMOTE_ADDR here — makes the lockout test deterministic in both local and CI runs.
+AXES_IPWARE_PROXY_COUNT = None
 # Manifest storage needs a collectstatic pass; tests render admin templates without one.
 STORAGES = {**STORAGES,  # noqa: F405
             "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}

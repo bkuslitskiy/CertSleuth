@@ -9,7 +9,7 @@ Review cadence: touch this file in every PR that lands security-relevant code; f
 | Ch. | Area | Status | Evidence / Notes | Related SEC | Last reviewed |
 |---|---|---|---|---|---|
 | V1 | Architecture, threat modeling | planned | Spec §7; threat notes in security.md; data-flow diagram TODO at repo kickoff | SEC-001..010 | 2026-07-16 |
-| V2 | Authentication | planned | Hardened auth library (no hand-rolled); TOTP optional; rate-limited login | SEC-009 | 2026-07-16 |
+| V2 | Authentication | partial | Hardened auth library (no hand-rolled); Argon2 + 12-char min + common-password validators; rate-limited login via IP-based lockout (django-axes, SEC-021, tests/test_login_lockout.py); TOTP still optional/not done | SEC-009, SEC-021 | 2026-07-20 |
 | V3 | Session management | planned | httpOnly + SameSite cookies; server-side session invalidation on logout/role change | — | 2026-07-16 |
 | V4 | Access control | partial | Server-side role checks per route (User/Approver/Admin); role-based admin perms implemented + tested; Postgres RLS mechanism verified on PG under a non-owner role (tests/test_rls.py, SEC-016) — enforcement flip needs the deploy-side non-owner role; worker tokens scoped claim/submit-to-staging only | SEC-004, SEC-008, SEC-012, SEC-016 | 2026-07-17 |
 | V5 | Validation, sanitization, encoding | partial | JSON Schema on ALL extractor ingest (both modes); the in-flow deterministic extractor's output is asserted schema-valid against the shared v1 contract in tests (tests/test_worker_autoextract.py, SEC-018) and routed to staging, never the catalog; parameterized queries only; output encoding via framework templates | SEC-005, SEC-018 | 2026-07-18 |

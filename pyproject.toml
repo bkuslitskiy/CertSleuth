@@ -13,6 +13,7 @@ dependencies = [
   "django-environ>=0.11",
   "argon2-cffi>=23.1",
   "cryptography>=43",
+  "django-axes>=7,<8",       # SEC-021: login brute-force lockout (DB handler, no Redis)
   "gunicorn>=23",            # Dockerfile CMD; harmless locally
 ]
 [project.optional-dependencies]

@@ -1,4 +1,5 @@
 """CertSleuth settings. Security decisions cross-referenced to security.md SEC-###."""
+from datetime import timedelta
 from pathlib import Path
 import environ
 
@@ -14,6 +15,7 @@ INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "django_q",
+    "axes",  # SEC-021: login brute-force lockout
     "apps.core", "apps.accounts", "apps.catalog", "apps.tracker", "apps.offers", "apps.research",
 ]
 
@@ -28,6 +30,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.ContentSecurityPolicyMiddleware",  # ASVS V14: strict CSP, no 3rd-party
+    "axes.middleware.AxesMiddleware",  # SEC-021: must be last; converts a lockout into a response
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -62,6 +65,31 @@ if not DEBUG:  # behind Caddy TLS
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+# --- SEC-021: login brute-force lockout (django-axes) ---
+# AxesStandaloneBackend must precede ModelBackend: it only performs the lockout check and
+# defers actual credential verification to ModelBackend.
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+AXES_HANDLER = "axes.handlers.database.AxesDatabaseHandler"  # shared across gunicorn workers, no Redis
+AXES_FAILURE_LIMIT = 5                               # failures before lockout
+AXES_COOLOFF_TIME = timedelta(hours=1)              # auto-unlock window
+# Lock by source IP (behind Caddy the resolved IP is the real client). IP-based lockout is
+# DoS-safe — an attacker can't lock a victim's account, only their own IP — and it also
+# catches credential-stuffing that spreads a few guesses across many accounts from one IP.
+AXES_LOCKOUT_PARAMETERS = ["ip_address"]
+# Django's AuthenticationForm submits the identifier under the field name "username" (even
+# though our USERNAME_FIELD is "email"); axes defaults this to USERNAME_FIELD, which would
+# read the wrong key and record username=None. Point it at the real form field so the
+# targeted account is captured on each AccessAttempt for admin forensics.
+AXES_USERNAME_FORM_FIELD = "username"
+AXES_RESET_ON_SUCCESS = True                        # a good login clears that IP's failures
+AXES_LOCKOUT_TEMPLATE = "registration/lockout.html"
+AXES_HTTP_RESPONSE_CODE = 429
+if not DEBUG:  # behind Caddy: trust exactly one proxy hop when resolving the client IP
+    AXES_IPWARE_PROXY_COUNT = 1
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
