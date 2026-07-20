@@ -1,8 +1,33 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.db.models import Count
+from django.shortcuts import redirect, render
 from apps.core.staleness import staleness
 from apps.tracker.models import UserCertification, Activity
 from apps.offers.models import FreeOffer
+
+
+def home(request):
+    """Root: the personal dashboard for signed-in users, the public landing for everyone else."""
+    if request.user.is_authenticated:
+        return dashboard(request)
+    return landing(request)
+
+
+def landing(request):
+    """Public marketing landing (SEC: no per-user data). Providers + copy + a waitlist form.
+    Renders fine with an empty catalog — prod has no providers until one is loaded in."""
+    from apps.accounts.forms import WaitlistForm
+    from apps.accounts.models import WaitlistEntry
+    from apps.catalog.models import Provider
+    form = WaitlistForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        WaitlistEntry.objects.get_or_create(email=form.cleaned_data["email"])
+        messages.success(request, "You're on the waitlist — we'll email you when a spot opens.")
+        return redirect("dashboard")
+    providers = (Provider.objects.annotate(n_certs=Count("certifications"))
+                 .filter(n_certs__gt=0).order_by("name"))
+    return render(request, "landing.html", {"providers": providers, "form": form})
 
 
 @login_required

@@ -3,7 +3,7 @@
 <h1>Your certifications</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
 {% if held %}
-<div class="card"><table>
+<div class="card"><div class="table-wrap"><table>
   <tr><th>Certification</th><th>Expires</th><th>Cert #</th><th>Rule freshness</th><th>Confidence</th><th></th></tr>
   {% for uc in held %}
   <tr>
@@ -16,7 +16,7 @@
         {% csrf_token %}<button class="btn quiet" {% if not uc.rule %}disabled{% endif %}>Report outdated</button></form></td>
   </tr>
   {% endfor %}
-</table></div>
+</table></div></div>
 {% else %}
 <p class="empty">No certifications yet. Add one manually, or use an import below.</p>
 {% endif %}

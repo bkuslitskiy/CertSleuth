@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>Never miss a certification renewal again</h1>
+  <div class="tribar"><span></span><span></span><span></span></div>
+  <p class="lead">Track your IT, security, tech, and product management certifications.
+     Explore options, optimize renewals, and avoid expiration.</p>
+
+  <form class="waitlist" method="post" action="{% url 'dashboard' %}">
+    {% csrf_token %}
+    <label for="wl-email" class="sr-only">Email address</label>
+    <input type="email" name="email" id="wl-email" placeholder="you@example.com"
+           autocomplete="email" required value="{{ form.email.value|default:'' }}">
+    <button class="btn" type="submit">Join the waitlist</button>
+  </form>
+  {% if form.email.errors %}<p class="field-error" role="alert">Enter a valid email address.</p>{% endif %}
+  <p class="hero-note">Invite-only while we build.
+     <a href="{% url 'login' %}">Already have an account? Sign in</a>.</p>
+</section>
+
+<section aria-labelledby="features-h">
+  <h2 id="features-h">One place for every credential</h2>
+  <div class="feature-grid">
+    <div class="card">
+      <h3>Renewals &amp; deadlines</h3>
+      <p>See every expiry and renewal window at a glance, and export them to your calendar
+         so a lapse never sneaks up on you.</p>
+    </div>
+    <div class="card">
+      <h3>CEUs that cross-credit</h3>
+      <p>Log one activity once and map its continuing-education credits across the providers
+         that accept it — no double entry.</p>
+    </div>
+    <div class="card">
+      <h3>Upgrade paths</h3>
+      <p>Discover which certifications build on the ones you already hold, waive fees, or
+         renew each other automatically.</p>
+    </div>
+    <div class="card">
+      <h3>Free offers</h3>
+      <p>A curated, human-reviewed feed of free exams, vouchers, and training as providers
+         run them.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="providers-h">
+  <h2 id="providers-h">Providers we track</h2>
+  {% if providers %}
+  <div class="provider-grid">
+    {% for p in providers %}
+    <div class="card provider-card">
+      <span class="provider-name">{{ p.name }}</span>
+      <span class="num">{{ p.n_certs }} certification{{ p.n_certs|pluralize }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">We're building out the catalog now — providers will appear here shortly.</p>
+  {% endif %}
+</section>
+{% endblock %}

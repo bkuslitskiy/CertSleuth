@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /$
+Allow: /privacy/
+Allow: /terms/
+Disallow: /admin/
+Disallow: /accounts/
+Disallow: /track/
+Disallow: /research/
+Disallow: /offers/
+Disallow: /catalog/
+Disallow: /api/
+Sitemap: {{ request.scheme }}://{{ request.get_host }}/sitemap.xml

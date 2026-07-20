@@ -4,7 +4,7 @@
 <p><a href="{% url 'catalog_providers' %}">&larr; All providers</a></p>
 <h1>{{ provider.name }}</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
-<div class="card"><table>
+<div class="card"><div class="table-wrap"><table>
   <tr><th>Abbrev.</th><th>Certification</th><th>Level</th><th>Renewal</th><th>Fee</th><th>Freshness</th><th></th></tr>
   {% for r in rows %}
   <tr>
@@ -20,5 +20,5 @@
     <td class="conf">{{ r.rule.confidence|default:"" }}</td>
   </tr>
   {% endfor %}
-</table></div>
+</table></div></div>
 {% endblock %}

@@ -14,6 +14,7 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
     "django_q",
     "axes",  # SEC-021: login brute-force lockout
     "apps.core", "apps.accounts", "apps.catalog", "apps.tracker", "apps.offers", "apps.research",
