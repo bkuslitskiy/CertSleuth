@@ -33,7 +33,11 @@ def claim(request):
     tok = _auth(request)
     if not tok:
         return HttpResponseForbidden()
-    n = min(int(request.GET.get("n", 5)), 25)
+    try:
+        n = int(request.GET.get("n", 5))
+    except (TypeError, ValueError):
+        n = 5
+    n = max(1, min(n, 25))  # clamp: a bad/negative ?n can't 500 or invert the slice
     now = timezone.now()
     # requeue expired leases
     ExtractionJob.objects.filter(status=ExtractionJob.Status.LEASED,

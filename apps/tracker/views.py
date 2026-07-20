@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib.auth import get_user_model
 from .models import UserCertification
 from .forms import (UserCertificationForm, ActivityForm, CredlyImportForm,
@@ -165,8 +166,12 @@ def plan_toggle(request, cert_id):
         messages.info(request, f"Removed {cert.name} from your planned certifications.")
     else:
         messages.success(request, f"Added {cert.name} to your planned certifications.")
-    return redirect(request.POST.get("next")
-                    or reverse("catalog_cert", args=[cert.provider.slug, cert.slug]))
+    # Only honor a same-host, local `next` — never an attacker-supplied external URL (open redirect).
+    nxt = request.POST.get("next")
+    if nxt and url_has_allowed_host_and_scheme(
+            nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect(reverse("catalog_cert", args=[cert.provider.slug, cert.slug]))
 
 
 @login_required
@@ -226,6 +231,13 @@ def gmail_scan_callback(request):
                    "source": "gmail", "kind": "gmail"})
 
 
+def _ics_escape(text):
+    """RFC 5545 §3.3.11: escape backslash, semicolon, comma, and newlines in TEXT values,
+    so a catalog name containing them can't inject calendar properties."""
+    return (str(text).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+            .replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n"))
+
+
 def ics_feed(request, token):
     """D5: tokenized read-only calendar of expirations. Token IS the auth (unguessable)."""
     try:
@@ -243,10 +255,11 @@ def ics_feed(request, token):
              "X-WR-CALNAME:CertSleuth expirations"]
     for uc in user.certs.select_related("certification").filter(expiry_date__isnull=False):
         d = uc.expiry_date.strftime("%Y%m%d")
+        name = _ics_escape(uc.certification)
         lines += ["BEGIN:VEVENT", f"UID:certsleuth-{uc.pk}@certsleuth.com",
-                  f"DTSTART;VALUE=DATE:{d}", f"SUMMARY:{uc.certification} expires",
+                  f"DTSTART;VALUE=DATE:{d}", f"SUMMARY:{name} expires",
                   "BEGIN:VALARM", "TRIGGER:-P30D", "ACTION:DISPLAY",
-                  f"DESCRIPTION:{uc.certification} expires in 30 days", "END:VALARM",
+                  f"DESCRIPTION:{name} expires in 30 days", "END:VALARM",
                   "END:VEVENT"]
     lines.append("END:VCALENDAR")
     return HttpResponse("\r\n".join(lines), content_type="text/calendar")
