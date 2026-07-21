@@ -4,6 +4,114 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
+## ⇢ Session 3, part 6 (2026-07-21, in progress) — recheck legacy low-richness certs,
+## new-provider crawl running in background, extraction continuing in parallel.
+
+Instruction: "Many providers and certs were added in previous sessions before the extraction
+was as robust so many fields are missing. Identify such certs and add them to the queue to
+recheck them. Then, queue up quota-limit-proof crawls for the providers that need them.
+Prioritize those that may need troubleshooting and add new discoveries to the frontier. Be
+thorough and drain the frontier completely. While that happens, begin extraction on
+everything pending." **407 total facts staged this session** (up from 336 at last handoff),
+**crawl still actively running in the background as this is written** — this entry will need
+a follow-up once it finishes.
+
+**Root-cause finding, corrects part-5's note:** Oracle was NOT "not pursued" — it already had
+**147 approved certs** from a bulk single-page extraction (job 4548, one giant name-list page,
+`claude-code-local` extractor) earlier in this session, before compaction. That's the actual
+shape of "less robust": entire providers extracted from ONE hub page with names only, never
+followed up with individual cert-detail pages. Same pattern found for **Adobe** (64 certs,
+1 job). Audited every provider's published-cert field completeness and job-count-per-cert to
+tell "genuinely sparse" apart from "just pending review" (most gaps are the latter — nothing
+wrong, StagedChange facts from earlier this session simply aren't approved yet).
+
+**Recheck cohort identified and requeued** (`ExtractionJob` → `queued`, snapshot cleared):
+- **Oracle** (1 job → re-fetched with real link discovery, now 36+ pages banked)
+- **Adobe** (148 individual cert-detail jobs, ALL previously `failed` — same bot-block pattern
+  as AWS below, never diagnosed before now)
+- **PMI** (11), **IAPP** (11), **ICAgile** (30) — individually job'd already but missing
+  exam_cost/validity/level; re-fetched for a fresh read
+- **AWS** (55 cert-path jobs; narrowed from a naive 480 `icontains='amazon'` match that
+  caught irrelevant blog/S3/marketing pages — reverted those back to `failed`)
+
+**Troubleshooting priority — AWS was the best win:** all 21 individual AWS cert-detail pages
+were `status=failed` (bot-blocked on a plain fetch). Requeuing let `claude_worker.py fetch`'s
+render fallback (Playwright, added in an earlier session per commit `e6a026a`) succeed on 18
+of them. Extracted **14 AWS certs with clean `level`/`exam_cost_usd`/`validity_years=3`**
+(AWS's own "Category" field maps directly to level: Foundational/Associate/Professional/
+Specialty) plus 2 lifecycle facts — both **SysOps Administrator - Associate** and **Machine
+Learning - Specialty** had already-passed "last day to take this exam" dates relative to
+today (2026-07-21), so marked `retired` (the still-future one, Advanced Networking Specialty
+retiring 2026-08-25, was correctly left alone) — plus a `supersedes` edge to CloudOps
+Engineer - Associate.
+
+**New-provider crawl (the "quota-limit-proof" queueing):** reset the 23 scouted hub pages
+(CNCF/CWNP/Palo Alto/EC-Council/Cisco/Salesforce/IBM/HubSpot/ASQ/Tableau/Fortinet/HashiCorp)
+from last round's raw-urllib scout to `queued` so they go through the *real* worker pipeline
+(render fallback + `fetch_report` same-domain link discovery) instead of a one-shot fetch.
+Wrote `promote_frontier.py` (mirrors the admin's "Trigger crawl" action — `SourceSubmission`
+→ `Source` + `ExtractionJob`, `origin=crawl` discoveries are NOT held for Approver review the
+way community `origin=user` submissions are per D16) and ran it interleaved with
+`claude_worker.py fetch` in a loop: fetch discovers links → promote → fetch the newly
+promoted → repeat. **Cisco alone has produced 21 real certification facts so far** (CCNA/
+CCNP/CCIE across Automation/Collaboration/Cybersecurity/Data Center/Enterprise/Security/
+Service Provider/Wireless, all with `level` mapped from Cisco's own explicit
+Associate/Professional/Expert tier language) — CNCF/CWNP/Palo Alto/EC-Council haven't
+surfaced individual cert pages yet at time of writing, still hub-page-depth in the crawl.
+
+**Recheck cohort yield:**
+- **PMI**: 1 new cert discovered (**CSPP** — Certified Sustainable Project Professional, not
+  previously in the catalog) + 4 `requires` edges (CAPM/PMP/PgMP/PfMP → CSPP) + PMOCP's
+  exam cost ($700). Most PMI pages gate the exam fee behind the application flow, so it's
+  genuinely not stated for the other 9 — left null rather than guessed.
+- **IAPP**: found **PLS, FIP, CDPO/BR already existed** too (same "earlier pass I didn't have
+  visibility into" pattern as Oracle) — added the prerequisite edges they were missing
+  (PLS ← CIPP/US + CIPM/CIPT; FIP ← any CIPP variant + CIPM/CIPT/AIGP; CDPO/BR ← CIPM).
+  **Caught a slug mismatch before submitting**: URL-derived slugs (`cippus`) don't match the
+  already-published hyphenated slugs (`cipp-us`) — checked `Certification.objects` first:
+  submitting the wrong slug would have silently created a duplicate/orphaned cert instead of
+  linking to the existing one. Worth remembering for any provider where the crawl URL slug
+  and the published catalog slug might diverge.
+- **ICAgile**: 2 Expert-tier (`ICE-`) certs' explicit "must hold two prerequisite
+  certifications" text → 4 `requires` edges. Read 3 sample pages of the 30 re-fetched; the
+  other 28 read as pure marketing copy with no schema-shaped facts (no fee, ambiguous level) —
+  not exhaustively read given the pattern was already clear.
+- **ISACA** (parallel manual extraction, not part of the recheck cohort but same session):
+  found a genuinely new cert (**CSX-P**, only its maintenance page was crawled, own overview
+  page not yet found) + closed renewal-rule gaps for **CCOA and AAIR** (10 CPE/yr for AAIR vs
+  20 for standard certs — the "Advanced" tier has a lower requirement, not previously known).
+- **ISC2** (same): 6 new "ISC2 Certificate" products discovered (Building AI Strategy, Cloud
+  Security Architecture Strategy, Essentials of Cloud, Risk Management, Threat Handling
+  Foundations, Zero Trust Strategy) — a lighter-weight completion-badge product line distinct
+  from the 10 core certifications, `level` captured where the page states a single
+  proficiency level (3 of 6; the other 3 span multiple levels, left null).
+- **Google Cloud**: `exam_cost_usd` + `validity_years` for 8 role certs (found via the exact
+  same recheck-cohort logic, folded into this pass).
+- **Scrum Alliance**: 3 new certs (CAF, CAL 2 — `requires` CAL-1, CASP — explicitly "no
+  prerequisites") found via a URL sweep, same 2-year SEU renewal cycle as the rest of the
+  catalog.
+- **Moz**: 5 certification products added per an explicit "Add seoMoz" instruction mid-turn
+  (SEO Essentials $595, Keyword Research/Local SEO/Technical SEO/Competitive Analysis $395
+  each) — no renewal/expiration stated on Moz's own pricing page.
+
+**Housekeeping:** excluded 2 accidentally-crawled personal URLs (Boris's own Microsoft Learn
+transcript, picked up by same-domain link-following) from recrawl — never read, marked
+`Source.status=dead`. **The dev server (`--noreload`) crashed from resource pressure at least
+3 more times this pass** — confirmed cause this time (not just suspected): Playwright renders
+spin up real Chrome processes for every bot-gated fetch, and a sustained multi-hundred-page
+crawl accumulates enough memory pressure that the plain dev server (zero crash-resilience) is
+the first thing Windows kills. Restarting via `preview_start` and resuming picks up cleanly
+every time (job state lives in the DB, not the process) — this is an inherent limit of
+running this kind of load against `runserver --noreload` locally, not an app bug. **Also
+learned**: manually re-leasing a job for submission must set `lease_expires_at` to a future
+timestamp (`timezone.now() + timedelta(hours=24)`, matching `claim()`'s own `LEASE_MINUTES`)
+— otherwise a concurrently-running crawl loop's own lease-expiry sweep can reclaim it back to
+`queued` mid-submission (hit this twice before catching the pattern).
+
+`ruff check .` and `pytest -q` (202 passed, 1 skipped) green mid-pass. No source files changed
+this pass — pure extraction (StagedChange data); this handoff entry itself is the only file
+change, committed separately once the crawl finishes and a final tally is in.
+
 ## ⇢ Session 3, part 5 (2026-07-21) — refetched missing snapshots, drained both queues.
 
 Direct follow-up to part 4's "new gap found" note. Instruction: "Refetch the urls from
