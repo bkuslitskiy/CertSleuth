@@ -4,6 +4,64 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
+## ⇢ Session 4 (2026-07-21) — bug triage from user-reported screenshots, eligibility/source/
+## sort features shipped, one data gap queued for re-extraction. **All pushed to main.**
+
+Boris reported 4 issues from screenshots of the live UI (CSP-PO/A-CSPO tier bug, level-field
+taxonomy question, 4 orphaned upgrade-path staged changes, missing CISSP CPE fact), then
+asked to build 3 features. Everything below is done and on `main`.
+
+**Bug fixes (`41b0db5`):**
+- `apps/catalog/compat.py` `_TIER_KEYWORDS` merged "advanced" into the same rank as
+  "professional"/"expert" — CSP-PO showed as "same tier" as A-CSPO when it's actually an
+  upgrade. Gave "advanced" its own rung; expanded keyword coverage (beginner, intermediate,
+  foundations, master) to match all 17 distinct `level` values live in the catalog.
+- StagedChange rows 1109–1112 (PMI upgrade paths, job 2268) referenced a duplicate
+  "Sustainability CSPP" cert (id 448) created by extractor slug drift across two crawls of
+  the same page, with `from_certification_slug` values that never matched the real catalog
+  slugs (`capm`/`pmp`/`pgmp`/`pfmp`). Deleted the two duplicate cert rows (448, and its
+  PMI-PMOCP twin 449 — neither had any FKs pointing at them) and corrected the 4 staged
+  payloads to the real slugs; they now resolve cleanly through `publish.py`.
+- Cleared 21 Playwright E2E test-fixture `SourceSubmission` rows that were cluttering the
+  admin review queue (`example.com/e2e-*`, `credly.com/badges/e2e-*`).
+
+**Features (`5957d3d`, branch `feature/eligibility-sources-sortable-tables`, merged):**
+- `Certification.eligibility_requirement` — separates experience/prerequisite text (ISC2's
+  "5+ Years Required Work Experience" etc.) from `level` (a tier word); the two were
+  conflated because there was nowhere else to put an eligibility fact. Migration 0013
+  backfilled the 8 ISC2 certs that had this backwards.
+- `Certification.source` — provenance for the certification fact itself, matching what
+  RenewalRule/UpgradePath already carry. Backfilled for all 468 existing certs from
+  historical approved StagedChanges. Powers a new "View sources" disclosure on the cert
+  detail page (cert fact + renewal rule + upgrade-path sources, de-duped).
+  - **Caught while verifying**: `_cert_sources()`'s upgrade-path labels were initially
+    backwards — `Certification.upgrade_edges_in`/`_out` related_names are the *reverse* of
+    what they sound like (`upgrade_edges_in` is rows where THIS cert is `from_cert`, i.e. it
+    leads to something else). Fixed before merge; regression test added.
+- Click-to-sort on the provider browse table and dashboard's held-certs table
+  (`static/js/sortable-table.js`) — `level` sorts by the tier_rank ladder rather than raw
+  text, so "beginner" certs group together regardless of free-text spelling. Added a CEU
+  column to the dashboard table so held certs can be sorted by renewal demand.
+
+**Open — needs a worker session (not Boris, just extraction time):**
+- Boris caught a real value-prop gap after reviewing the fix: Scrum Alliance's ScrumMaster
+  track has the full renewal chain (CSM → A-CSM → CSP-SM, all "renews" edges present), but
+  **Product Owner and Developer tracks are incomplete** — A-CSPO → CSP-PO renews is
+  missing, and CSD → A-CSD / A-CSD → CSP-D are both missing despite all three certs having
+  complete renewal rules. All three tracks' facts came from the same source
+  (`https://www.scrumalliance.org/get-certified/renewing-certifications`, Source #6,
+  already active) — the original extraction pass just didn't finish PO/Developer to the
+  same depth as ScrumMaster. **ExtractionJob #5237 queued against Source #6** — next
+  session, run it and confirm the missing edges come back for both tracks (not just
+  re-confirming what's already there).
+- Also queued: **ExtractionJob #5236** against a new Source (`https://www.isc2.org/policies-
+  procedures/member-policies`, Source #4941) — ISC2's actual per-credential CPE table (the
+  existing CISSP renewal rule cites the general CPE Handbook/Insights article, neither of
+  which states the 120-credit CISSP-specific number). Approver-approved this session
+  (Boris, in-chat).
+
+---
+
 ## ⇢ Session 3, part 6 (2026-07-21) — recheck legacy low-richness certs, new-provider crawl
 ## driven to exhaustion, mid-session pivot to crawl-only. **Extraction is paused — resume
 ## next session.**
