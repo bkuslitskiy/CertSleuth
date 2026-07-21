@@ -75,6 +75,15 @@ def compatibility(cert, user_certs):
     covered_other = [e for e in outbound
                      if e.effect in (UpgradePath.Effect.WAIVES_FEE,
                                      UpgradePath.Effect.SUPERSEDES)]
+    # Partial credit is its own axis, short of a full RENEWS (CompTIA: earning SecurityX
+    # grants 25 of Cloud+'s 50 required CEUs — real progress, not full renewal). Same
+    # inbound/outbound edges as above, just a different effect filter.
+    partial_credit_toward_yours = [{"cert": e.from_cert, "ceu_amount": e.ceu_amount}
+                                   for e in inbound
+                                   if e.effect == UpgradePath.Effect.PARTIAL_CREDIT]
+    partial_credit_for_this = [{"cert": e.to_cert, "ceu_amount": e.ceu_amount}
+                               for e in outbound
+                               if e.effect == UpgradePath.Effect.PARTIAL_CREDIT]
 
     same_provider = [c for c in held if c.provider_id == cert.provider_id and c.pk != cert.pk]
     shared_ceu = []
@@ -110,6 +119,8 @@ def compatibility(cert, user_certs):
         "required_by_yours": required_by_yours,  # held certs that required the browsed one
         "lower_level_than": lower_level_than,  # keyword-derived, prereq-covered excluded
         "covered_other": covered_other,        # held cert waives fee / supersedes this one
+        "partial_credit_toward_yours": partial_credit_toward_yours,  # earning this credits held certs
+        "partial_credit_for_this": partial_credit_for_this,  # a held cert already credits this one
         "shared_ceu": shared_ceu,              # same provider, both CEU-governed
         "ceu_currency": cert.provider.ceu_currency or "CEU",
         "tiers": tiers,                        # remaining keyword relations (higher/same)

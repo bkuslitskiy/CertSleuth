@@ -1,7 +1,7 @@
 """Approval publishes + versions rules (spec: versioned, never overwritten)."""
 import pytest
 from django.contrib import admin, messages
-from apps.catalog.models import Source, Provider, Certification, RenewalRule
+from apps.catalog.models import Source, Provider, Certification, RenewalRule, UpgradePath
 from apps.research.models import ExtractionJob, StagedChange
 from apps.research.publish import publish
 
@@ -52,3 +52,23 @@ def test_publish_versions_not_overwrites(staged_rule, approver):
     assert cert.current_rule.ceu_required == 125     # new is current
     old = RenewalRule.objects.get(ceu_required=120)
     assert old.superseded_by == cert.current_rule    # chain intact
+
+
+def test_partial_credit_upgrade_path_persists_ceu_amount(approver):
+    """SEC-005-adjacent: partial_credit must carry its ceu_amount through publish, and
+    must never be confused with a full renews (that would overstate what was earned)."""
+    src = Source.objects.create(url="https://comptia.example/ce")
+    job = ExtractionJob.objects.create(source=src)
+    p = Provider.objects.create(name="CompTIA", slug="comptia")
+    Certification.objects.create(provider=p, name="Cloud+", slug="cloud")
+    Certification.objects.create(provider=p, name="SecurityX", slug="securityx")
+    staged = StagedChange.objects.create(
+        job=job, kind="upgrade_path", extractor="t",
+        payload={"provider_slug": "comptia", "from_certification_slug": "cloud",
+                 "to_certification_slug": "securityx", "effect": "partial_credit",
+                 "ceu_amount": 25, "confidence": "confirmed"})
+    publish(staged, approver)
+    edge = UpgradePath.objects.get()
+    assert edge.effect == UpgradePath.Effect.PARTIAL_CREDIT
+    assert edge.ceu_amount == 25
+    assert edge.from_cert.slug == "cloud" and edge.to_cert.slug == "securityx"

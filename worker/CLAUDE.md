@@ -46,7 +46,11 @@ only `ceu_required`/`cycle_years`. On each policy/catalog page look for and emit
    emit a `credit_rule` whose `category` is prefixed `external:<source-provider-slug>`
    (naming convention — no schema change needed).
 3. **`upgrade_path` edges** — `requires` (prerequisite), `renews` (earning `to` renews
-   `from`), `waives_fee`, `supersedes` (retiring cert -> successor). Direction rule as above.
+   `from`), `waives_fee`, `supersedes` (retiring cert -> successor), `partial_credit`
+   (earning `to` grants a FIXED CEU count toward `from`'s renewal, short of full
+   `renews` — e.g. CompTIA: "SecurityX grants 25 CEUs toward Cloud+", 25 of Cloud+'s 50
+   required. Emit `ceu_amount` with the stated number; never emit `renews` for a partial
+   amount — that misrepresents it as full renewal). Direction rule as above.
 4. **`certification` metadata gaps** — on cert pages complete `exam_cost_usd`,
    `validity_years`, `level`, `abbreviation`, and lifecycle (`status:"retired"` +
    `retired_date`) when stated. Fill `external_ids` (e.g. `{"credly_template":"..."}`) when

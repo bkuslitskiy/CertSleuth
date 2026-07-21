@@ -22,7 +22,8 @@ class UpgradePathPayload(BaseModel):
     provider_slug: str
     from_certification_slug: str
     to_certification_slug: str
-    effect: Literal["renews", "waives_fee", "supersedes", "requires"]
+    effect: Literal["renews", "waives_fee", "supersedes", "requires", "partial_credit"]
+    ceu_amount: int | None = None  # fixed CEU count granted; only meaningful for partial_credit
     confidence: Literal["confirmed", "commonly_accepted", "inferred"] = "commonly_accepted"
 
 

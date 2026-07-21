@@ -124,10 +124,17 @@ class UpgradePath(models.Model):
         # from tier: Network+ is a lower CompTIA tier than Security+ but not required
         # by it — providers wire these differently, so it's an edge, not an inference.
         REQUIRES = "requires", "Requires (prerequisite)"
+        # Earning to_cert grants a FIXED number of CEUs toward from_cert's renewal —
+        # short of a full RENEWS (CompTIA: "SecurityX grants 25 CEUs toward Cloud+", out
+        # of Cloud+'s 50 required). ceu_amount carries the count; null for every other
+        # effect. Distinct from CreditRule, which is a generic activity-kind rate, not a
+        # specific cert-to-cert credit.
+        PARTIAL_CREDIT = "partial_credit", "Partial credit"
 
     from_cert = models.ForeignKey(Certification, on_delete=models.CASCADE, related_name="upgrade_edges_in")
     to_cert = models.ForeignKey(Certification, on_delete=models.CASCADE, related_name="upgrade_edges_out")
     effect = models.CharField(max_length=16, choices=Effect.choices)
+    ceu_amount = models.PositiveSmallIntegerField(null=True, blank=True)  # only for PARTIAL_CREDIT
     source = models.ForeignKey(Source, null=True, on_delete=models.SET_NULL)
     confidence = models.CharField(max_length=20, choices=Confidence.choices, default=Confidence.ACCEPTED)
     last_verified_at = models.DateTimeField(null=True, blank=True)

@@ -108,6 +108,30 @@ def test_shared_ceu_same_provider_only(user, scrum):
     assert compat["ceu_currency"] == "SEU"
 
 
+def test_partial_credit_shows_toward_held_cert(user, scrum):
+    # earning the browsed cert grants fixed CEUs toward a cert the user already holds
+    p, csm, acsm = scrum
+    UpgradePath.objects.create(from_cert=csm, to_cert=acsm, effect="partial_credit",
+                               ceu_amount=15)
+    _hold(user, csm)
+    compat = compatibility(acsm, UserCertification.objects.filter(user=user))
+    assert compat["partial_credit_toward_yours"] == [{"cert": csm, "ceu_amount": 15}]
+    assert compat["renews_yours"] == [csm]  # the fixture's separate renews edge, unaffected
+
+
+def test_partial_credit_does_not_read_as_full_renewal(user, scrum):
+    # a held cert that only grants partial credit toward the browsed cert must not
+    # appear in the full-renewal list — that would overstate what was actually earned
+    p, csm, acsm = scrum
+    other = Certification.objects.create(provider=p, name="CSPO", slug="cspo")
+    UpgradePath.objects.create(from_cert=other, to_cert=acsm, effect="partial_credit",
+                               ceu_amount=10)
+    _hold(user, other)
+    compat = compatibility(acsm, UserCertification.objects.filter(user=user))
+    assert other not in compat["renews_yours"]
+    assert compat["partial_credit_toward_yours"] == [{"cert": other, "ceu_amount": 10}]
+
+
 def test_exam_based_cert_shares_no_ceu_pool(user, scrum):
     # a cert with a rule but no CEU requirement (e.g. AWS re-exam) claims no shared pool
     p, csm, _ = scrum

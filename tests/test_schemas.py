@@ -26,6 +26,10 @@ SAMPLES = [
      "payload": {"provider_slug": "isaca", "category": "Certification-aligned",
                  "activity_kinds": ["course", "conference", "webinar"],
                  "credits_per_hour": 1, "confidence": "confirmed"}},
+    {"job_id": 6, "kind": "upgrade_path", "extractor": "claude-code-local",
+     "payload": {"provider_slug": "comptia", "from_certification_slug": "cloud",
+                 "to_certification_slug": "securityx", "effect": "partial_credit",
+                 "ceu_amount": 25, "confidence": "confirmed"}},
 ]
 
 

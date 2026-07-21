@@ -45,7 +45,8 @@ def publish(staged, reviewer):
         UpgradePath.objects.update_or_create(
             from_cert=from_c, to_cert=to_c, effect=p["effect"],
             defaults={"source": staged.job.source, "last_verified_at": timezone.now(),
-                      "confidence": p.get("confidence", "commonly_accepted")})
+                      "confidence": p.get("confidence", "commonly_accepted"),
+                      "ceu_amount": p.get("ceu_amount")})
     elif staged.kind == "credit_rule":
         provider = Provider.objects.get(slug=p["provider_slug"])
         CreditRule.objects.update_or_create(
