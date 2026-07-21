@@ -4,6 +4,78 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
+## ⇢ Session 3, part 5 (2026-07-21) — refetched missing snapshots, drained both queues.
+
+Direct follow-up to part 4's "new gap found" note. Instruction: "Refetch the urls from
+earlier less feature rich crawls, then drain crawl queue and extraction queue." **336 total
+facts staged pending this session** (up from 288): 129 certification, 130 renewal_rule, 77
+upgrade_path.
+
+**Queue mechanics (the "refetch" half):**
+- Reset 610 `ExtractionJob` rows stuck `leased` by two abandoned crawl-session tokens, and
+  240 rows that had reached `status=done` with an **empty `snapshot_hash` and no file on
+  disk** (root cause still unconfirmed — worth checking why these never persisted a
+  snapshot) — both back to `queued`. Promoted 14 legitimate un-promoted `SourceSubmission`
+  rows (Oracle ×6 — a new provider frontier, scrum.org ×6, ISACA/ISC2 ×1 each) into
+  `Source`+`ExtractionJob`; explicitly skipped 24 e2e-test-pollution rows
+  (`example.com/e2e-offer-*`) and 5 individual Credly badge URLs (wrong content shape — a
+  person's earned-badge page, not a policy page).
+- Ran `claude_worker.py fetch` in a loop to drain the resulting 850-job queue. **The dev
+  server (`--noreload`) died mid-loop twice** (`ConnectionRefusedError`, cause not
+  diagnosed) — restarted via `preview_start` both times and resumed. End state: **0 queued**,
+  811 jobs fetched with a real snapshot, 53 genuine fetch failures (now marked `failed`).
+- **Incidental PII discovery**: the crawl's same-domain link-following picked up Boris's own
+  Microsoft Learn transcript URL (`/users/boriskuslitskiy-7596/transcript/...` and
+  `/users/me/credentials`) — his personal exam history, not catalog content. Did not read or
+  extract from it; marked both `Source` rows `dead` with a 100-year cadence so they can't
+  recrawl. Worth a permanent link-filter (skip `/users/` paths) if this keeps recurring.
+
+**Extraction (the "drain" half) — could not exhaustively read all 811 fetched pages in one
+pass; triaged by likely value instead of reading linearly:**
+- **ISC2** (10 pages, all 10 real certs): confirmed `level=Beginner` for CC (its own page's
+  only explicit tier word); added 3 `requires` edges (CISSP → ISSAP/ISSEP/ISSMP, its
+  "concentrations"). The other 7 pages are pure marketing/purchase copy with no schema-shaped
+  facts beyond what's already staged.
+- **ISACA** (9 existing certs + 4 new CMMC-track certs): exam costs for 6 certs ($760
+  CISA/CISM/CRISC/CGEIT/CDPSE, $499 CCOA, $599 AAIA/AAISM/AAIR), `level=Advanced` for the 3
+  "Advanced in AI ___" certs (literal word in the credential's own expansion, same treatment
+  as Microsoft's "...Expert" naming), 6 `requires` edges (AAIA←CISA, AAISM←CISM, AAIR← any of
+  CISA/CISM/CRISC/CGEIT/CDPSE). **New discovery**: ISACA's CMMC assessor track — CCP
+  (foundational) → CCA (requires CCP) → LCCA (requires both) — plus **CCI** (Certified CMMC
+  Instructor, genuinely new, "coming soon" so no renewal/edges yet). CCP/CCA/LCCA renewal
+  facts already existed from an earlier pass; this round added exam costs and the
+  prerequisite edges.
+- **Google Cloud** (8 certs): `exam_cost_usd` for all 8 ($99–$200) and `validity_years` for 3
+  (Cloud Architect 2yr, Associate Cloud Engineer/Cloud Digital Leader 3yr) — the other 5 role
+  pages state a fee but no validity period, left null rather than assumed.
+- **Scrum Alliance**: 3 genuinely new certs found via a URL sweep — Certified Agile
+  Facilitator (CAF), Certified Agile Leader 2 (CAL 2, `requires` CAL-1), Certified Agile
+  Scaling Practitioner (CASP, explicitly "no prerequisites") — all on the standard 2-year SEU
+  renewal cycle.
+- **Microsoft**: cross-referenced `credential-retirement` (job 860) against the 7 certs
+  marked `retired` last session without a date — it lists exact retirement dates for all 7,
+  now backfilled (Dec 2025 – June 2026). Also **confirmed** (didn't change) that the 4 certs
+  deliberately left non-retired last session (Azure Developer, D365 CX Analyst, Azure
+  Security Engineer, Power Platform Functional Consultant) are correctly still "scheduled to
+  retire," not yet retired — this page independently corroborates that earlier judgment call.
+- **CompTIA** (8 pages) **and GIAC** (11 pages): read and found genuinely nothing new —
+  CompTIA's pages restate exam codes/CEU data already staged; GIAC doesn't publish pricing on
+  its public cert pages at all, and none state a literal tier word.
+- **Not pursued**: Oracle's hub page (job 4558) lists ~20 real cert names and a confirmed
+  policy fact ("OCI certification credentials are now valid for two years, instead of only 18
+  months") but has no individual cert-detail pages crawled yet — starting a real Oracle
+  provider would mean a fresh discovery+fetch round for a brand-new provider, a bigger
+  decision than "drain the current queue." Same call for Atlassian (5 pages, all generic
+  marketing hub, no cert-detail content at all — doesn't look crawlable from what's queued).
+  **~780 fetched-but-unread jobs remain** across ISACA (~165 "other"), ISC2 (~80 "other"),
+  CompTIA (~55 "other"), Microsoft (~200, mostly policy/FAQ/Applied-Skills pages already
+  spot-checked as low-value), plus GIAC/Google/Scrum Alliance tails — spot-checks across
+  every domain this round found duplicate/policy/marketing content, not missed certs, so this
+  is very likely near the bottom of real value, but it has not been read exhaustively.
+
+`ruff check .` and `pytest -q` (202 passed, 1 skipped) green. No source files changed this
+pass — pure extraction (StagedChange data) plus one commit for this handoff note.
+
 ## ⇢ Session 3, part 4 (2026-07-21) — Microsoft driven to barren; new gap found (missing snapshots).
 
 Continuation of part 3, per "go further in extraction through to barren on all providers."
