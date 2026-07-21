@@ -10,10 +10,12 @@ def publish(staged, reviewer):
         provider, _ = Provider.objects.get_or_create(slug=p["provider_slug"],
                                                      defaults={"name": p["provider_slug"].title()})
         defaults = {"name": p["name"], "level": p.get("level", ""),
+                    "eligibility_requirement": p.get("eligibility_requirement", ""),
                     **({"abbreviation": p["abbreviation"]} if p.get("abbreviation") else {}),
                     "exam_cost_usd": p.get("exam_cost_usd"),
                     "validity_years": p.get("validity_years"),
-                    "external_ids": p.get("external_ids", {})}
+                    "external_ids": p.get("external_ids", {}),
+                    "source": staged.job.source}
         # Lifecycle only changes when the fact asserts it — an ordinary re-crawl of a
         # cert page must never silently resurrect or retire a certification.
         if p.get("status"):

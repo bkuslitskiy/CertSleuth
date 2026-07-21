@@ -38,6 +38,52 @@ test("nav Browse -> providers -> certs -> detail with compatibility section", as
   ).toBeVisible();
 });
 
+test("cert detail sources disclosure expands to show links", async ({ page }) => {
+  await login(page);
+  await page.goto("/catalog/");
+  const providers = page.locator(".card a");
+  if ((await providers.count()) === 0) {
+    return; // CI runs on an empty catalog — nothing to walk into.
+  }
+  await providers.first().click();
+  await page.locator("table a").first().click();
+
+  const sources = page.locator('[data-testid="sources"]');
+  if ((await sources.count()) === 0) {
+    return; // this particular cert has no source on file yet.
+  }
+  await expect(sources.locator("summary")).toContainText(/view sources/i);
+  await sources.locator("summary").click();
+  await expect(sources.locator("a").first()).toBeVisible();
+  await expect(sources.locator("a").first()).toHaveAttribute("target", "_blank");
+});
+
+test("provider table sorts by clicking a column header", async ({ page }) => {
+  await login(page);
+  await page.goto("/catalog/");
+  const providers = page.locator(".card a");
+  if ((await providers.count()) === 0) {
+    return; // CI runs on an empty catalog.
+  }
+  await providers.first().click();
+  const table = page.locator("table[data-sortable]");
+  await expect(table).toBeVisible();
+  const rowCount = await table.locator("tbody tr").count();
+  if (rowCount < 2) {
+    return; // nothing meaningful to reorder.
+  }
+  const header = table.locator("thead th").nth(1); // "Certification" column
+  const firstCellBefore = await table.locator("tbody tr").first().locator("td").nth(1).innerText();
+  await header.click();
+  await expect(header).toHaveAttribute("data-sort", "asc");
+  await header.click();
+  await expect(header).toHaveAttribute("data-sort", "desc");
+  const firstCellAfter = await table.locator("tbody tr").first().locator("td").nth(1).innerText();
+  // Reversing the sort direction must actually reorder the rows (unless the table
+  // happens to have only one distinct value, vanishingly unlikely with real data).
+  expect(firstCellAfter).not.toBe(firstCellBefore);
+});
+
 test("unknown provider 404s", async ({ page }) => {
   await login(page);
   const resp = await page.request.get("/catalog/definitely-not-a-provider/");

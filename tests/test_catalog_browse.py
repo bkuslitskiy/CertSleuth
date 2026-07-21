@@ -276,6 +276,46 @@ def test_cert_page_shows_compat_sections(client, user, scrum):
     assert 'data-compat="shared-ceu"' in body
 
 
+def test_cert_page_shows_sources_button(client, user, scrum):
+    from apps.catalog.models import Source
+    p, csm, acsm = scrum
+    src = Source.objects.create(url="https://scrumalliance.org/get-certified/scrummaster")
+    csm.source = src
+    csm.save(update_fields=["source"])
+    client.force_login(user)
+    resp = client.get("/catalog/scrum-alliance/csm/")
+    body = resp.content.decode()
+    assert 'data-testid="sources"' in body
+    assert src.url in body
+
+
+def test_cert_page_hides_sources_button_when_none(client, user, scrum):
+    _, csm, _ = scrum
+    client.force_login(user)
+    body = client.get("/catalog/scrum-alliance/csm/").content.decode()
+    assert 'data-testid="sources"' not in body
+
+
+def test_cert_sources_dedupe_and_include_upgrade_edges(user, scrum):
+    from apps.catalog.models import Source
+    from apps.catalog.views import _cert_sources
+    p, csm, acsm = scrum
+    src = Source.objects.create(url="https://scrumalliance.org/a-csm")
+    acsm.source = src
+    acsm.save(update_fields=["source"])
+    rule = acsm.current_rule
+    rule.source = src           # same URL as the cert fact -- must not duplicate
+    rule.save(update_fields=["source"])
+    edge_src = Source.objects.create(url="https://scrumalliance.org/renewal-policy")
+    UpgradePath.objects.filter(from_cert=csm, to_cert=acsm).update(source=edge_src)
+    sources = _cert_sources(acsm, rule)
+    assert [s["url"] for s in sources] == [src.url, edge_src.url]
+    # Regression: the model's related_name is the reverse of the edge direction it
+    # sounds like ("upgrade_edges_out" is rows where THIS cert is to_cert, i.e.
+    # something else leads to it) — label must name the other cert, not itself.
+    assert sources[1]["label"] == f"Upgrade path from {csm.name}"
+
+
 def test_cert_page_no_interactions_message(client, user, scrum):
     client.force_login(user)                                  # holds nothing
     resp = client.get("/catalog/scrum-alliance/csm/")

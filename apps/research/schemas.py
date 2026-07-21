@@ -50,6 +50,9 @@ class CertificationPayload(BaseModel):
     slug: str
     abbreviation: str = ""       # the short form people know (CISM, PMP); "" = no claim
     level: str = ""
+    # Eligibility/prerequisite text (e.g. "5+ years required work experience"), distinct
+    # from `level` — a tier/difficulty word, not an experience requirement.
+    eligibility_requirement: str = ""
     exam_cost_usd: float | None = None
     validity_years: int | None = None
     # "retired" = no longer attainable (holders may still track it). Emit only when the

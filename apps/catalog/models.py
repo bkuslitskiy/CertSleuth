@@ -78,9 +78,20 @@ class Certification(models.Model):
     status = models.CharField(max_length=10, choices=Lifecycle.choices, default=Lifecycle.ACTIVE)
     retired_date = models.DateField(null=True, blank=True)
     level = models.CharField(max_length=80, blank=True)
+    # Eligibility/prerequisite text stated by the provider (e.g. "5+ years required work
+    # experience"). Separate from `level` (a tier/difficulty word) — the two were getting
+    # conflated by extraction because there was nowhere else to put an experience
+    # requirement (2026-07-21 audit found ISC2 facts miscaptured this way).
+    eligibility_requirement = models.CharField(max_length=300, blank=True)
     exam_cost_usd = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     validity_years = models.PositiveSmallIntegerField(null=True, blank=True)
     external_ids = models.JSONField(default=dict, blank=True)  # {"credly_template": "...", ...} (D26)
+    # Provenance for the certification fact itself (SEC-005/006) — lets the browse UI
+    # link back to the page a user can confirm the data on. RenewalRule/UpgradePath/
+    # CreditRule already carry their own `source`; this is the analogous field for the
+    # certification metadata row (name/level/cost/etc), which had none before.
+    source = models.ForeignKey(Source, null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name="+")
 
     class Meta:
         unique_together = [("provider", "slug")]

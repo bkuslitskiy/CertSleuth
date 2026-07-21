@@ -3,19 +3,30 @@
 <h1>Your certifications</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
 {% if held %}
-<div class="card"><div class="table-wrap"><table>
-  <tr><th>Certification</th><th>Expires</th><th>Cert #</th><th>Rule freshness</th><th>Confidence</th><th></th></tr>
+<div class="card"><div class="table-wrap"><table data-sortable>
+  <thead><tr>
+    <th data-sort="text">Certification</th>
+    <th data-sort="date">Expires</th>
+    <th data-sort="text">Cert #</th>
+    <th data-sort="num">CEU due</th>
+    <th data-sort="date">Rule freshness</th>
+    <th data-sort="text">Confidence</th>
+    <th></th>
+  </tr></thead>
+  <tbody>
   {% for uc in held %}
   <tr>
     <td>{{ uc.certification }}</td>
-    <td class="num">{{ uc.expiry_date|default:"—" }}</td>
+    <td class="num" data-sort-value="{{ uc.expiry_date|date:'c'|default:'' }}">{{ uc.expiry_date|default:"—" }}</td>
     <td class="num">{{ uc.cert_number|default:"—" }}</td>
-    <td><span class="chip {{ uc.chip }}" title="Last verified: {{ uc.rule.last_verified_at|default:'never' }}"></span></td>
+    <td class="num" data-sort-value="{{ uc.rule.ceu_required|default_if_none:'' }}">{% if uc.rule.ceu_required %}{{ uc.rule.ceu_required }}{% if uc.rule.cycle_years %} / {{ uc.rule.cycle_years }}yr{% endif %}{% else %}—{% endif %}</td>
+    <td data-sort-value="{{ uc.rule.last_verified_at|date:'c'|default:'' }}"><span class="chip {{ uc.chip }}" title="Last verified: {{ uc.rule.last_verified_at|default:'never' }}"></span></td>
     <td class="conf">{{ uc.rule.confidence|default:"—" }}</td>
     <td><form method="post" action="{% url 'report_outdated' 'renewal_rule' uc.rule.pk|default:0 %}">
         {% csrf_token %}<button class="btn quiet" {% if not uc.rule %}disabled{% endif %}>Report outdated</button></form></td>
   </tr>
   {% endfor %}
+  </tbody>
 </table></div></div>
 {% else %}
 <p class="empty">No certifications yet. Add one manually, or use an import below.</p>

@@ -22,6 +22,9 @@ If you already hold it, your renewal tracking still applies.</p>
   <table>
     <tr><th>Abbreviation</th><td>{{ cert.abbreviation|default:"—" }}</td></tr>
     <tr><th>Level</th><td>{{ cert.level|default:"—" }}</td></tr>
+    {% if cert.eligibility_requirement %}
+    <tr><th>Eligibility</th><td>{{ cert.eligibility_requirement }}</td></tr>
+    {% endif %}
     <tr><th>Exam cost</th><td class="num">{% if cert.exam_cost_usd %}${{ cert.exam_cost_usd }}{% else %}—{% endif %}</td></tr>
     <tr><th>Validity</th><td class="num">{% if cert.validity_years %}{{ cert.validity_years }} years{% elif rule.cycle_years %}{{ rule.cycle_years }} years{% else %}—{% endif %}</td></tr>
     <tr><th>Renewal</th>
@@ -100,5 +103,16 @@ If you already hold it, your renewal tracking still applies.</p>
 {% endfor %}
 {% if not compat.holds_it and not compat.renews_yours and not compat.waives_fee_for and not compat.supersedes_yours and not compat.prereqs_met and not compat.required_by_yours and not compat.lower_level_than and not compat.covered_other and not compat.shared_ceu and not compat.tiers %}
 <p class="empty">No known interactions with the certifications you hold.</p>
+{% endif %}
+
+{% if sources %}
+<details class="card" data-testid="sources">
+  <summary class="btn quiet">View sources ({{ sources|length }})</summary>
+  <ul class="sources-list">
+    {% for s in sources %}
+    <li><a href="{{ s.url }}" rel="noopener noreferrer" target="_blank">{{ s.label }}</a></li>
+    {% endfor %}
+  </ul>
+</details>
 {% endif %}
 {% endblock %}

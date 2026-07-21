@@ -56,6 +56,11 @@ only `ceu_required`/`cycle_years`. On each policy/catalog page look for and emit
    `retired_date`) when stated. Fill `external_ids` (e.g. `{"credly_template":"..."}`) when
    the page exposes a badge/credential id — it lets the Credly / Accredible / Open-Badge
    importers auto-match imported credentials to the catalog instead of queuing them.
+   `level` is a tier/difficulty word only ("Associate", "Professional", "Expert", ...).
+   When the page instead states an experience/eligibility prerequisite ("5+ years of
+   required work experience", "must hold X for 2 years") that is NOT a tier word — put it
+   in `eligibility_requirement`, never in `level`. (2026-07-21: ISC2 facts had this
+   backwards, which broke tier-ranking downstream.)
 5. **The full cert list per provider** (including retired), not only certs that have a
    renewal rule — completes browse, the landing showcase, and importer matching. (Still skip
    the four deterministic providers already in `jobs/auto_results.jsonl`.)

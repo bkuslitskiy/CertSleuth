@@ -4,8 +4,17 @@
 <p><a href="{% url 'catalog_providers' %}">&larr; All providers</a></p>
 <h1>{{ provider.name }}</h1>
 <div class="tribar"><span></span><span></span><span></span></div>
-<div class="card"><div class="table-wrap"><table>
-  <tr><th>Abbrev.</th><th>Certification</th><th>Level</th><th>Renewal</th><th>Fee</th><th>Freshness</th><th></th></tr>
+<div class="card"><div class="table-wrap"><table data-sortable>
+  <thead><tr>
+    <th data-sort="text">Abbrev.</th>
+    <th data-sort="text">Certification</th>
+    <th data-sort="num">Level</th>
+    <th data-sort="num">Renewal</th>
+    <th data-sort="num">Fee</th>
+    <th data-sort="date">Freshness</th>
+    <th data-sort="text">Confidence</th>
+  </tr></thead>
+  <tbody>
   {% for r in rows %}
   <tr>
     <td class="num"><a href="{% url 'catalog_cert' provider.slug r.cert.slug %}">{{ r.cert.abbreviation|default:"—" }}</a></td>
@@ -13,12 +22,13 @@
         {% if r.held %}<span class="chip green" title="You hold this"></span>{% endif %}
         {% if r.planned %}<span title="Planned">★</span>{% endif %}
         {% if r.cert.status == 'retired' %}<span class="badge stale">Retired</span>{% endif %}</td>
-    <td>{{ r.cert.level|default:"—" }}</td>
-    <td class="num">{% if r.rule.ceu_required %}{{ r.rule.ceu_required }} {{ provider.ceu_currency|default:"CEU" }}{% if r.rule.cycle_years %} / {{ r.rule.cycle_years }}yr{% endif %}{% elif r.rule.cycle_years %}exam / {{ r.rule.cycle_years }}yr{% else %}—{% endif %}</td>
-    <td class="num">{% if r.rule.renewal_fee_usd %}${{ r.rule.renewal_fee_usd }}{% elif r.rule.annual_fee_usd %}${{ r.rule.annual_fee_usd }}/yr{% else %}—{% endif %}</td>
-    <td><span class="chip {{ r.chip }}" title="Rule freshness"></span></td>
+    <td data-sort-value="{{ r.level_rank|default_if_none:'' }}">{{ r.cert.level|default:"—" }}</td>
+    <td class="num" data-sort-value="{{ r.rule.ceu_required|default_if_none:'' }}">{% if r.rule.ceu_required %}{{ r.rule.ceu_required }} {{ provider.ceu_currency|default:"CEU" }}{% if r.rule.cycle_years %} / {{ r.rule.cycle_years }}yr{% endif %}{% elif r.rule.cycle_years %}exam / {{ r.rule.cycle_years }}yr{% else %}—{% endif %}</td>
+    <td class="num" data-sort-value="{{ r.fee|default_if_none:'' }}">{% if r.rule.renewal_fee_usd %}${{ r.rule.renewal_fee_usd }}{% elif r.rule.annual_fee_usd %}${{ r.rule.annual_fee_usd }}/yr{% else %}—{% endif %}</td>
+    <td data-sort-value="{{ r.rule.last_verified_at|date:'c'|default:'' }}"><span class="chip {{ r.chip }}" title="Rule freshness"></span></td>
     <td class="conf">{{ r.rule.confidence|default:"" }}</td>
   </tr>
   {% endfor %}
+  </tbody>
 </table></div></div>
 {% endblock %}

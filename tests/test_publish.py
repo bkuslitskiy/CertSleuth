@@ -54,6 +54,23 @@ def test_publish_versions_not_overwrites(staged_rule, approver):
     assert old.superseded_by == cert.current_rule    # chain intact
 
 
+def test_certification_publish_sets_eligibility_and_source(approver):
+    # Eligibility text is distinct from `level` (regression: ISC2 facts had experience
+    # requirements stuffed into `level`) and every certification fact should attach its
+    # source, same as renewal_rule/upgrade_path already do.
+    src = Source.objects.create(url="https://isc2.example/cissp")
+    job = ExtractionJob.objects.create(source=src)
+    staged = StagedChange.objects.create(
+        job=job, kind="certification", extractor="t",
+        payload={"provider_slug": "isc2", "slug": "cissp", "name": "CISSP",
+                 "level": "", "eligibility_requirement": "5+ Years Required Work Experience"})
+    publish(staged, approver)
+    cert = Certification.objects.get(provider__slug="isc2", slug="cissp")
+    assert cert.eligibility_requirement == "5+ Years Required Work Experience"
+    assert cert.level == ""
+    assert cert.source == src
+
+
 def test_partial_credit_upgrade_path_persists_ceu_amount(approver):
     """SEC-005-adjacent: partial_credit must carry its ceu_amount through publish, and
     must never be confused with a full renews (that would overstate what was earned)."""

@@ -60,3 +60,13 @@ def test_retired_certification_round_trips():
                           "name": "Old Cert", "status": "retired",
                           "retired_date": "2026-01-01"}}
     assert ExtractionResult(**sample).validated_payload()["status"] == "retired"
+
+
+def test_eligibility_requirement_round_trips():
+    # Distinct from `level` — an experience/prerequisite fact, not a tier word.
+    sample = {"job_id": 7, "kind": "certification", "extractor": "claude-code-local",
+              "payload": {"provider_slug": "isc2", "slug": "cissp", "name": "CISSP",
+                          "level": "", "eligibility_requirement": "5+ Years Required Work Experience"}}
+    payload = ExtractionResult(**sample).validated_payload()
+    assert payload["eligibility_requirement"] == "5+ Years Required Work Experience"
+    assert payload["level"] == ""

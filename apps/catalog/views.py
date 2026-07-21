@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, render
 
 from apps.core.staleness import staleness
 from apps.tracker.models import UserCertification
-from .compat import compatibility
+from .compat import compatibility, tier_rank
 from .models import Certification, Provider
 
 
@@ -37,15 +37,44 @@ def provider_detail(request, provider_slug):
         rule = c.current_rule
         rows.append({"cert": c, "rule": rule, "held": c.pk in held_ids,
                      "planned": c.pk in planned_ids,
-                     "chip": staleness(rule.last_verified_at) if rule else "red"})
+                     "chip": staleness(rule.last_verified_at) if rule else "red",
+                     # Numeric sort keys for the browse table (client-side sort): tier
+                     # rank so "beginner" certs group together across free-text `level`
+                     # spellings, fee picks whichever of renewal/annual is on file.
+                     "level_rank": tier_rank(c.level),
+                     "fee": (rule.renewal_fee_usd if rule and rule.renewal_fee_usd
+                             else rule.annual_fee_usd if rule else None)})
     return render(request, "catalog/provider.html",
                   {"provider": provider, "rows": rows})
+
+
+def _cert_sources(cert, rule):
+    """Distinct source pages backing what's shown on this cert's detail page, so a user
+    can confirm the data, read more, or go apply — de-duped by URL, most relevant first."""
+    seen = {}
+
+    def add(source, label):
+        if source and source.url not in seen:
+            seen[source.url] = {"url": source.url, "label": label}
+
+    add(cert.source, "Certification details")
+    if rule:
+        add(rule.source, "Renewal rule")
+    # Model naming trap: `upgrade_edges_in` is the related_name on the *from_cert* field
+    # (rows where this cert IS from_cert, i.e. it leads TO something else), and
+    # `upgrade_edges_out` is the related_name on *to_cert* (rows where this cert IS
+    # to_cert, i.e. something else leads TO it) — the reverse of what the names suggest.
+    for edge in cert.upgrade_edges_in.select_related("source", "to_cert"):
+        add(edge.source, f"Upgrade path to {edge.to_cert.name}")
+    for edge in cert.upgrade_edges_out.select_related("source", "from_cert"):
+        add(edge.source, f"Upgrade path from {edge.from_cert.name}")
+    return list(seen.values())
 
 
 @login_required
 def cert_detail(request, provider_slug, cert_slug):
     cert = get_object_or_404(
-        Certification.objects.select_related("provider"),
+        Certification.objects.select_related("provider", "source"),
         provider__slug=provider_slug, slug=cert_slug)
     rule = cert.current_rule
     compat = compatibility(cert, _my_certs(request.user))
@@ -53,4 +82,5 @@ def cert_detail(request, provider_slug, cert_slug):
     return render(request, "catalog/certification.html", {
         "cert": cert, "rule": rule, "compat": compat, "planned": planned,
         "chip": staleness(rule.last_verified_at) if rule else "red",
+        "sources": _cert_sources(cert, rule),
     })
