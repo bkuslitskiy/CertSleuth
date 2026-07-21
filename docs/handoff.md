@@ -4,6 +4,63 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
+## ⇢ Session 3, part 3 (2026-07-21) — second extraction pass, deeper per-provider mining.
+
+Continued the extraction pass over the same background crawl (700-job frontier), this time
+reading previously-unread banked snapshots per provider instead of just the highest-value
+pages. **189 total facts staged pending this session** (up from 140): 44 certification, 89
+renewal_rule, 56 upgrade_path. By provider: CompTIA 86, ISC2 18, Google Cloud 21, ISACA 27,
+Microsoft 37. Frontier crawl queue is now down to ~36 jobs (from 700) and draining on its
+own — effectively barren for the ~700-job scope this session queued.
+
+**New this pass:**
+- **CompTIA**: expanded every cert's `ceu_categories` to include teach/mentor, create
+  materials, SME workshop, and publish article/blog/book caps (jobs 1028-1030) — the
+  richest single-provider dataset in the catalog now.
+- **ISC2**: confirmed `cycle_years=3` applies to all 9 real certs (job 1196) — the CPE
+  *total* per cert is still genuinely unconfirmed (canonical policy URL still 404s).
+- **Google Cloud**: found the live pages for Data Engineer + Cloud Database Engineer (the
+  `/certification/<slug>` path 404s for these two; live content is under
+  `/learn/certification/<slug>`) — filled in real fee/validity data.
+- **ISACA**: confirmed the `$45/$85` annual maintenance fee directly on CISA/CISM/CCOA/CCA's
+  own pages, applied the same figure to CRISC/CGEIT/CDPSE as `commonly_accepted` (same
+  program, same tier, not individually re-confirmed); found LCCA's flat `$500` annual fee
+  (no CPE requirement at all — a genuinely different renewal shape).
+- **Microsoft — the big one**: `docs/credentials/support/credential-retirement` lists
+  certifications already retired with specific dates. Cross-referenced against today's date
+  (2026-07-21): **9 already-retired certs** (8 existing catalog rows + 1 new
+  `microsoft-365-fundamentals`) now correctly marked `status=retired` with `retired_date`.
+  This is exactly the retired-lifecycle feature (commit `300e3e8`) doing its job on real data.
+  Also confirmed a **new, unexplored cert family**: GitHub certs (Foundations/Administration/
+  Copilot/Actions/Advanced Security), MOS certs (Word/Excel/PowerPoint × 2019 and M365-Apps
+  variants, on a **5-year** cycle per `credential-expiration-policy` — distinct from the
+  standard 1-year role-based cycle), and Fabric certs (Analytics/Data Engineer Associate) —
+  added 3 as a sample (github-foundations, github-administration,
+  mos-word-associate-m365-apps) but this is a genuinely large new surface, not yet mined.
+
+**Where "barren" was NOT reached (honest accounting, not a guess):**
+- **Microsoft's long tail is the biggest gap** — ~230 pages still unread at last check,
+  dominated by three whole new cert families (GitHub, MOS, Fabric/Applied-Skills) that
+  weren't in the catalog when this session started. Applied Skills are a *different*
+  credential type from Certifications per Microsoft's own framing (lab-based, don't expire)
+  — would need a schema/product decision on whether to track them at all before extracting.
+- **ISACA's "fundamentals certificates"** tier (badge-level, ~11 of them under
+  `/credentialing/*-fundamentals-certificate`) is still unexplored — lower priority, more
+  badge than certification.
+- **CompTIA's cross-provider partial-CEU grants** (e.g., "earning an AWS cert grants 20 CEUs
+  toward CompTIA A+") — real data (job 1005) but requires exact slug-matching against 10+
+  other providers' catalogs; a substantially larger and more error-prone task than
+  same-provider extraction. Flagged, not attempted.
+
+**Resume point:** snapshots are cumulative in `worker/jobs/*.html`; find unread ones per
+provider with the "already extracted" job_id diff pattern used throughout this session
+(`StagedChange.objects.filter(extractor='claude-code-local').values_list('job_id')` vs
+`os.path.exists(f'jobs/{job_id}.html')`). The crawl loop's remaining ~36 jobs will finish
+draining on their own if the background process is still alive; if not, the queue is stable
+and can be resumed with `worker/claude_worker.py fetch` in a loop.
+
+---
+
 ## ⇢ Session 3, part 2 (2026-07-21) — extraction pass. Read this block first.
 
 Reviewed all 369 previously-pending StagedChanges (published; see below), then ran a live
