@@ -4,6 +4,61 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
+## ⇢ Session 3, part 4 (2026-07-21) — Microsoft driven to barren; new gap found (missing snapshots).
+
+Continuation of part 3, per "go further in extraction through to barren on all providers."
+**288 total facts staged pending this session** (up from 189 at the last handoff): 98
+certification, 127 renewal_rule, 63 upgrade_path. All still `pending` StagedChange rows —
+**needs Boris's admin review pass**, nothing auto-published (SEC-005).
+
+**Microsoft is now genuinely barren.** Read and extracted every remaining cert-detail page
+in the crawled frontier:
+- Closed the M365/GitHub family: Teams/Endpoint/Collaboration Comms admin associates,
+  Copilot & Agent Admin fundamentals, M365 Administrator Expert (+ 4 `requires` prerequisite
+  edges), GitHub Copilot/Agentic AI Developer/Advanced Security/Actions.
+- Filled `level` for ~30 previously-uncaptured cert pages (Security Ops Analyst, Identity &
+  Access Admin, Information Security Admin, Azure Administrator/Developer/Security
+  Engineer/Database Admin/Virtual Desktop/Network Engineer/Cosmos DB/Solutions Architect
+  Expert/DevOps Engineer Expert, Power Platform, Dynamics 365 ×6, MOS ×7, MCE, and more) plus
+  2 new `requires` edges (DevOps Engineer Expert, Azure Solutions Architect ← Administrator).
+- **Lifecycle sweep**: 9 more certs confirmed `retired` via explicit page text (Dynamics 365
+  Fundamentals CRM/ERP, M365 Fundamentals, Azure Data Scientist/AI Engineer, D365 Finance
+  Solution Architect/Supply Chain Expert, Power Platform Solution Architect Expert, D365
+  Field Service, Power Automate RPA Developer) — 3 of these had explicit `retired_date`.
+  Certs stated as retiring on a *future* date (Azure Developer, D365 CX Analyst, Azure
+  Security Engineer, Power Platform Functional Consultant — all "retire on" a 2026-07/08
+  date) were deliberately left **without** `status=retired`: per `worker/CLAUDE.md`, that
+  field means "no longer attainable," which isn't true yet.
+- **Discovered and fetched 7 pages the crawler never found**: Azure Network Engineer
+  Associate, Azure Cosmos DB Developer Specialty, Fabric Analytics/Data Engineer Associate,
+  Azure Data Fundamentals, D365 Customer Service Functional Consultant, and Agentic AI
+  Business Solutions Architect (new `level` value seen: `"Advanced"`, distinct from the
+  Beginner/Intermediate/Expert set used elsewhere). Found via sibling `/practice/assessment`
+  sub-pages that existed with no matching main page — direct single-page fetches (7 URLs,
+  same `CertSleuthBot` UA the worker uses), not a broad crawl. Local-only, per the standing
+  local-crawl approval.
+- **MOS/MCE renewal cadence resolved**: `credential-expiration-policy` (job 869) states
+  "MOS and MCE Certifications expire every 5 years" — applied `cycle_years=5` (fee not
+  stated, left null) to all 7 MOS certs + Microsoft Certified Educator.
+
+**New gap found (not pursued this session): ~111 done-but-unmined jobs across CompTIA (25),
+ISC2 (15), ISACA (54), Google (17)** — these cert-detail pages were fetched in an earlier
+crawl and reached `status=done`, but **no snapshot HTML was ever persisted to
+`worker/jobs/`** (empty `snapshot_hash`, no file on disk), so they can't be re-extracted
+without a fresh fetch. Spot-checked: the underlying certs (CISSP, CCSP, CGRC, CSSLP, SSCP,
+Security+, Network+, CISA, AAIA, …) are **already published** with correct name/slug — this
+is a `level`/metadata backfill gap, not a missing-cert gap. Re-fetching is the same shape of
+action as the 7-page Microsoft pickup above, just ~15x the volume — flagging for a decision
+rather than launching it silently. `worker/jobs/` retention for pages fetched before this
+session is worth checking (why did these never get a snapshot file?) before just re-fetching.
+
+**Housekeeping this pass**: the local dev server (`--noreload`) had stopped between sessions
+and needed a restart; a stray `WorkerToken` (`claude-code-local-session4`) was minted because
+the original session's token value wasn't recoverable (only its hash is stored, per
+SEC-004) — harmless, local-only. `ruff check .` and `pytest -q` (202 passed, 1 skipped) both
+green; no source files changed this pass (pure extraction — StagedChange data, not commits),
+so nothing new to push.
+
 ## ⇢ Session 3, part 3 (2026-07-21) — second extraction pass, deeper per-provider mining.
 
 Continued the extraction pass over the same background crawl (700-job frontier), this time
