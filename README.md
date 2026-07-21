@@ -65,6 +65,15 @@ Caddyfile, `manage.py migrate` + `setup_schedules` in the web container, nightly
   `Authority` (issuer — could aid provider matching) and `License Number` (could fill the
   encrypted cert_number field, SEC-009).
 - Run the preload: extraction worker sessions over the 21 seeded sources.
+- ISC2 `level` mis-extraction: several ISC2 certification facts have an eligibility
+  requirement string (e.g. "5+ Years Required Work Experience", "CISSP + 2 Years or 7
+  Years Cumulative Required Work Experience") captured in the `level` field instead of an
+  actual tier word — there's no eligibility-requirement field in the schema for the
+  extractor to use instead. `apps/catalog/compat.py`'s tier_rank() deliberately leaves
+  these unranked (2026-07-21 taxonomy audit), so browse compatibility is unaffected, but
+  the `level` chip on those cert pages shows the wrong thing. Needs a schema field for
+  eligibility requirements (apps/research/schemas.py, worker/schema.py) plus a re-crawl of
+  the affected ISC2 pages to re-extract `level` correctly.
 
 Done since first boot: initial migrations; cert-number encryption (SEC-009); django-q
 schedules; approver role → admin surfaces (SEC-012); approver-gated spend (SEC-013);

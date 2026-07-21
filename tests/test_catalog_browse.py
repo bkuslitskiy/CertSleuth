@@ -33,10 +33,33 @@ def _hold(user, cert):
 def test_tier_rank_keywords():
     assert tier_rank("Foundational") == 0
     assert tier_rank("Associate") == 1
-    assert tier_rank("Professional") == 2
     assert tier_rank("Advanced") == 2
+    assert tier_rank("Professional") == 3
     assert tier_rank("Specialty") is None      # orthogonal, never ranked
     assert tier_rank("") is None
+
+
+def test_advanced_ranks_below_professional_not_same_tier():
+    # CSP-PO regression: Scrum Alliance's ladder is foundational < advanced <
+    # professional. A-CSPO ("Advanced") must rank strictly below CSP-PO ("Professional").
+    assert tier_rank("Advanced") < tier_rank("Professional")
+
+
+def test_tier_rank_covers_full_live_taxonomy():
+    # Every ladder word actually seen in production `level` data (2026-07-21 audit)
+    # must resolve to the expected ordering: foundational/beginner < associate/
+    # intermediate < advanced < professional/expert < master.
+    assert tier_rank("Beginner") == 0
+    assert tier_rank("Foundations") == 0            # icagile plural form
+    assert tier_rank("Foundations Associate") == 0  # oracle: entry-tier despite the word
+    assert tier_rank("Intermediate") == 1
+    assert tier_rank("Expert") == 3
+    assert tier_rank("Master") == 4
+    assert tier_rank("Master") > tier_rank("Expert")
+    # Non-ladder / mis-captured values stay deliberately unranked.
+    assert tier_rank("Qualified Credential") is None
+    assert tier_rank("5+ Years Required Work Experience") is None
+    assert tier_rank("CISSP + 2 Years or 7 Years Cumulative Required Work Experience") is None
 
 
 def test_earning_higher_cert_renews_held_lower(user, scrum):
@@ -201,6 +224,17 @@ def test_keyword_higher_tier_reported_per_held_cert(user, scrum):
     compat = compatibility(acsm, UserCertification.objects.filter(user=user))
     assert sorted(t["cert"].slug for t in compat["tiers"]) == ["csm", "plain"]
     assert all(t["relation"] == "higher" for t in compat["tiers"])
+
+
+def test_advanced_held_cert_is_lower_tier_than_professional_cert(user, scrum):
+    # Regression: browsing a "Professional" cert while holding an "Advanced" one in the
+    # same track must read as "higher", never "same" — they are distinct rungs.
+    p, _, acsm = scrum
+    csp = Certification.objects.create(provider=p, name="Certified Scrum Professional",
+                                       slug="csp", level="Professional")
+    _hold(user, acsm)
+    compat = compatibility(csp, UserCertification.objects.filter(user=user))
+    assert compat["tiers"] == [{"cert": acsm, "relation": "higher"}]
 
 
 def test_holds_it_flag(user, scrum):

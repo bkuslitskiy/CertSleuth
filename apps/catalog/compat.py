@@ -12,11 +12,28 @@ Answers three questions for a browsed cert X (spec: user-facing browse):
 """
 from .models import UpgradePath
 
-# Keyword -> rank. Specialty is orthogonal to the ladder, so it is deliberately absent.
+# Keyword -> rank, covering every tier word seen across live provider data (2026-07-21
+# audit of catalog_certification.level: 17 distinct non-blank values across 10 providers).
+# "advanced" is its own rung, not merged with "professional"/"expert" — Scrum Alliance's
+# ladder is foundational < advanced < professional (CSP-PO is an upgrade from A-CSPO,
+# not the same tier), and other providers' "advanced" designations sit above associate
+# but below their top professional/expert tier the same way. "master" (Adobe) sits above
+# that as its own top rung.
+#
+# Deliberately absent (return None — no guesses on non-ladder or non-tier free text):
+# - "Specialty" (AWS), "Qualified Credential" (Adobe): orthogonal to the ladder, not a rung.
+# - ISC2's "N Years Required Work Experience" / "CISSP + 2 Years or 7 Years..." strings:
+#   these are eligibility facts, not tier language — the extractor captured an experience
+#   requirement into the `level` field because the schema has nowhere else to put it. That's
+#   a worker-side mis-extraction, not a ranking gap; fixing it needs a schema field for
+#   eligibility requirements plus re-crawling ISC2 pages (see README Known TODOs), not a
+#   keyword added here.
 _TIER_KEYWORDS = [
-    (0, ("foundational", "fundamental", "entry")),
-    (1, ("associate", "practitioner", "certified scrum", "foundation")),
-    (2, ("professional", "expert", "advanced")),
+    (0, ("foundational", "foundations", "foundation", "fundamental", "entry", "beginner")),
+    (1, ("associate", "practitioner", "certified scrum", "intermediate")),
+    (2, ("advanced",)),
+    (3, ("professional", "expert")),
+    (4, ("master",)),
 ]
 
 
