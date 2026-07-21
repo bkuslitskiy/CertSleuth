@@ -4,17 +4,80 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
-## ⇢ Session 3, part 6 (2026-07-21, in progress) — recheck legacy low-richness certs,
-## new-provider crawl running in background, extraction continuing in parallel.
+## ⇢ Session 3, part 6 (2026-07-21) — recheck legacy low-richness certs, new-provider crawl
+## driven to exhaustion, mid-session pivot to crawl-only. **Extraction is paused — resume
+## next session.**
 
 Instruction: "Many providers and certs were added in previous sessions before the extraction
 was as robust so many fields are missing. Identify such certs and add them to the queue to
 recheck them. Then, queue up quota-limit-proof crawls for the providers that need them.
 Prioritize those that may need troubleshooting and add new discoveries to the frontier. Be
 thorough and drain the frontier completely. While that happens, begin extraction on
-everything pending." **407 total facts staged this session** (up from 336 at last handoff),
-**crawl still actively running in the background as this is written** — this entry will need
-a follow-up once it finishes.
+everything pending." **407 total facts staged this session** (up from 336 at last handoff) —
+see the "Recheck cohort identified" / "Recheck cohort yield" sections further down this same
+entry for the extraction detail (ISC2, ISACA, Google Cloud, Scrum Alliance, Moz, AWS, PMI,
+IAPP, ICAgile, Cisco). **Mid-session the instruction changed**: "Change the priorities for
+this session. Focus on crawling and don't extract anything. Just keep the crawl active."
+Extraction stopped there; everything below the frontier-drain outcome is pure crawl-frontier
+draining, no new StagedChange facts.
+
+### Frontier-drain outcome (final, confirmed by two consecutive natural drains)
+**0 `ExtractionJob` rows queued. 3,104 `leased` (fetched, snapshot on disk, genuinely
+unread) — this is next session's extraction backlog.** 1,871 `failed` (permanent: robots.txt
+disallows, confirmed-dead links, or bot-blocks that survived even the Playwright render
+retry), 223 `done` (already extracted+submitted this session). `SourceSubmission`: 21
+`queued` are the Playwright e2e test suite's fake fixtures (`example.com/e2e-*`, literal
+"E2E ..." descriptions) — permanently and correctly un-promotable, not a real backlog.
+
+Per-domain leased (fetched, ready to read) breakdown, largest first:
+Cisco 499, ASQ 476, Salesforce 379, Microsoft 243, ISACA 214, Adobe 149, CNCF 134,
+HubSpot 120, Moz 112, HashiCorp 111, EC-Council 105, ISC2 94, CompTIA 92, AWS 55, Oracle 51,
+Scrum Alliance 47, Google 35, GIAC 34, CWNP 33, ICAgile 28, Scrum.org 20, IBM 18, PMI 12,
+Palo Alto Networks 12, IAPP 8, Credly 5, Atlassian 5, Linux Foundation 4, Fortinet 3,
+Tableau 2, Red Hat 2, Google Skillshop 1, PeopleCert 1.
+
+**Ran a retry pass** (render fallback, 2nd attempt) on providers left shallow by bot-blocking:
+CWNP went from 32 failed → all 33 recovered; IBM 16/18 and Palo Alto 7/12 got real content;
+**Tableau remained fully blocked** (0/2 — the one provider still fully bot-resistant even on
+retry); Fortinet's low count (3) is a legitimate robots.txt disallow, not a failure.
+
+**Security finding + fix (SEC-024, see `security.md`/`security-audit.md`)**: the ad hoc
+`promote_frontier.py` crawl-promotion script (mirrors the admin's "Trigger crawl" action) was
+promoting **any** queued `SourceSubmission` based on URL-noise filtering alone, without
+checking `origin` — meaning community (`origin=user`) submissions could bypass SEC-007's
+"inert until an Approver acts" gate. Audit found 10 already-promoted `origin=user` rows
+(individual third-party Credly/Acclaim/Skilljar/bcert.me badge-verification links) that
+**predate this session** (2026-07-18/19) — not something this session's script caused, but
+worth knowing it's there. Boris explicitly authorized promotion in real time and confirmed
+this local instance has a single trusted account (the actual condition SEC-007 exists to
+protect against, absent here) — recorded as **session-scoped and local-only**; production's
+per-row Approver click in the admin is unchanged.
+
+**Housekeeping done at session close**: killed ~20 orphaned Playwright Chrome processes
+(the root cause of the repeated `--noreload` dev-server crashes — confirmed, not just
+suspected, per the mid-session investigation) and removed a stale root-level `jobs/`
+directory (a partial manual copy of `worker/jobs/` made early this session for one-off
+build scripts, superseded once snapshot reads went through `worker/jobs/` directly, gitignored
+so never tracked). `git status` clean, in sync with `origin/main`, `pytest -q` green as of the
+last check before the crawl-only pivot (202 passed, 1 skipped) — worth re-running before the
+next extraction pass since nothing has touched source files since.
+
+### For next session: resuming extraction
+- **288 → 407** facts already staged and pending Boris's admin review from this session's
+  earlier extraction work (before the crawl-only pivot) — that queue hasn't shrunk; still
+  needs a review pass independent of anything below.
+- **3,104 fetched pages are the new backlog**, none read yet. Highest-value first guess based
+  on this session's pattern (bulk-name-list providers need per-cert pages, individually-job'd
+  providers need policy-page depth): Cisco (499, likely CCNA/CCNP/CCIE variants across more
+  tracks than the 21 already extracted), ASQ (476, entirely unread — a brand-new provider,
+  scout it first), Salesforce (379, only ~6 certs confirmed from one Trailhead page so far,
+  the real catalog is much bigger), Microsoft (243) and ISACA (214) are continuations of
+  already-well-mined providers so expect lower marginal value per page (translated PDFs,
+  policy-procedure duplicates were the pattern last time) — sample before committing to a
+  full read-through.
+- Same lease-hygiene note as before: any manual re-lease for a `submit` call needs
+  `lease_expires_at` set to a future timestamp, or a live crawl loop's own expiry sweep can
+  reclaim the job mid-submission.
 
 **Root-cause finding, corrects part-5's note:** Oracle was NOT "not pursued" — it already had
 **147 approved certs** from a bulk single-page extraction (job 4548, one giant name-list page,
