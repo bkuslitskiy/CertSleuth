@@ -2,6 +2,65 @@
 
 Snapshot for the next working session. Pairs with the auto-loaded project memory.
 
+---
+
+## ⇢ Session 3 (2026-07-20) — CURRENT. Read this block first; everything below is historical (sessions 1–2).
+
+**Repo / deploy state**
+- `main` @ `6c735a6`, **+5 ahead of `origin/main` — NOT pushed.** Working tree clean. Only
+  `main` exists locally (+ stale `origin/design-dark-luxury`, unused).
+- **PRODUCTION IS LIVE** at https://certsleuth.com (GCP e2-micro **Standard**, Caddy TLS,
+  Postgres). **Deploy = Boris clones/pulls from git on the VM**, then
+  `docker compose up -d --build` + `manage.py migrate`; no CI/CD, **Claude never deploys**.
+- **To ship this session's work:** push `main`; on the VM pull + **`docker compose build`**
+  (new dep `django-axes`) + **`manage.py migrate axes`** + restart. A plain code pull will
+  NOT activate SEC-021 (needs the build + migration).
+
+**What landed this session (all on `main`; green: `ruff` + 198 `pytest`)**
+- `8ab6834` — worker accepts any 2xx render response (scrum.org's 202) + test.
+- `6d6439e` — provider-metadata migration `0010` (pre-seeds 23 providers) + fix for the test
+  slug collision it introduced (`test_publish_credit_rule.py` → `get_or_create`).
+- `18e0c40` — **SEC-021**: `django-axes` IP-based login lockout (5 failures / 1h cool-off, DB
+  handler, 429 + `registration/lockout.html`). Gotcha fixed: `AXES_USERNAME_FORM_FIELD="username"`
+  (axes defaulted to `USERNAME_FIELD=email`, so it recorded `username=None` and never matched).
+- `4618e4f` — **SEC-022**: open-redirect guard on `next` (`plan_toggle`), RFC-5545 ICS
+  escaping (`ics_feed`), bounded worker `?n` (`claim`). Tests in `test_input_hardening.py`.
+- `6c735a6` — **SEC-023**: public landing at `/` for anon (dashboard for auth, via
+  `apps.core.views.home`), descriptive metadata (desc/OG/canonical/favicon in `base.html`),
+  a11y (skip link, landmarks, `prefers-color-scheme`), responsive (375px breakpoint + table
+  scroll-wrappers), SEO (`robots.txt` + `sitemap.xml`). Reuses `WaitlistEntry`/`WaitlistForm`.
+  Verified in-browser (desktop + mobile, no CSP errors); `test_landing.py`.
+
+**Prod gaps — Boris-side, before prod is fully right/safe:**
+1. **Prod catalog is EMPTY.** The 118 certs / 16 renewal rules are LOCAL sqlite only, so the
+   public landing shows **no providers** in prod until the catalog is loaded in — export local
+   → `loaddata`/fixture or a data migration. **NOT a crawl** (local-crawl-only rule stands).
+2. **Backups NOT set up** — nightly `pg_dump` cron + one restore drill (gcp-setup §1.5). Do
+   before relying on prod. (SEC-021's `migrate axes` is additive/safe even without them.)
+3. **`EMAIL_URL` unset** → the waitlist "we'll email you" and invites store/queue but send
+   nothing until SMTP is configured.
+4. RLS enforcement flip — deploy-side non-owner web role (README TODO).
+
+**Open work queue (mostly local / needs-Boris):**
+- Review **369 pending `StagedChange`s** (local admin) — approve/reject.
+- Promote 38 inert `SourceSubmission`s (local, optional next frontier round).
+- Renewal-rule extraction gaps: CompTIA per-cert CEU, ISC2, Google, ISACA AI certs, Microsoft
+  (needs a catalog provider first).
+- Gmail OAuth execution (needs `GOOGLE_OAUTH_*`).
+
+**Gotchas carried forward:**
+- `ruff check .` + `pytest -q` before any push (CI hard-fails on ruff).
+- **Local-crawl-only:** never crawl / spend LLM against prod.
+- Dev serves the **unhashed** `static/css/certsleuth.css` → the browser caches it; after
+  editing `input.css` run `npm run css` and hard-reload. Prod's `ManifestStaticFilesStorage`
+  hashes the filename, so no stale-CSS there.
+- Two schema validators stay in sync: `apps/research/schemas.py` + `worker/schema.py`.
+- Local superuser: `boris.kuslitskiy@gmail.com` / `certsleuth-local-dev`. E2E users:
+  `e2e@` / `rev@example.com` / `a-long-test-password`.
+- Full session plan/notes: `C:\Users\Boris\.claude\plans\first-review-the-project-mutable-cocoa.md`.
+
+---
+
 > **Update 2026-07-18 (session 2).** Wired the deterministic extractor into the worker
 > (SEC-018); made the worker render JS-built pages by default (SEC-019), replacing the
 > failed `needs_render` heuristic with `main_text_len` + real rendering; re-crawled the
