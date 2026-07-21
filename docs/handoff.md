@@ -32,17 +32,24 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
   Verified in-browser (desktop + mobile, no CSP errors); `test_landing.py`.
 
 **Prod gaps — Boris-side, before prod is fully right/safe:**
-1. **Prod catalog is EMPTY.** The 118 certs / 16 renewal rules are LOCAL sqlite only, so the
-   public landing shows **no providers** in prod until the catalog is loaded in — export local
-   → `loaddata`/fixture or a data migration. **NOT a crawl** (local-crawl-only rule stands).
+1. **Prod catalog is EMPTY.** The LOCAL sqlite catalog is now **398 certifications / 177
+   renewal rules / 30 upgrade paths across 15 providers** (see "Review done" below), but prod
+   has none — the public landing shows **no providers** in prod until the catalog is loaded in
+   → export local (`dumpdata catalog`) → `loaddata`/fixture or a data migration. **NOT a
+   crawl** (local-crawl-only rule stands). This is now the top item for a good prod landing.
 2. **Backups NOT set up** — nightly `pg_dump` cron + one restore drill (gcp-setup §1.5). Do
    before relying on prod. (SEC-021's `migrate axes` is additive/safe even without them.)
 3. **`EMAIL_URL` unset** → the waitlist "we'll email you" and invites store/queue but send
    nothing until SMTP is configured.
 4. RLS enforcement flip — deploy-side non-owner web role (README TODO).
 
+**Review done (2026-07-20):** the **369 pending `StagedChange`s** (all `claude-code-local`:
+280 new certs + 84 confirmed renewal rules + 5 upgrade paths, for oracle/adobe/icagile/iapp/
+pmi/scrum-org) were reviewed and **published via `publish.py`** (certs-first order; 0 errors,
+integrity pre-verified: 0 dupes, 0 dangling refs). Local pending queue is now **empty**;
+approver = boris superuser. This is LOCAL sqlite only — see prod gap #1 to get it into prod.
+
 **Open work queue (mostly local / needs-Boris):**
-- Review **369 pending `StagedChange`s** (local admin) — approve/reject.
 - Promote 38 inert `SourceSubmission`s (local, optional next frontier round).
 - Renewal-rule extraction gaps: CompTIA per-cert CEU, ISC2, Google, ISACA AI certs, Microsoft
   (needs a catalog provider first).
