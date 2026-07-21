@@ -4,7 +4,62 @@ Snapshot for the next working session. Pairs with the auto-loaded project memory
 
 ---
 
-## ⇢ Session 3 (2026-07-20) — CURRENT. Read this block first; everything below is historical (sessions 1–2).
+## ⇢ Session 3, part 2 (2026-07-21) — extraction pass. Read this block first.
+
+Reviewed all 369 previously-pending StagedChanges (published; see below), then ran a live
+operator extraction pass (Sonnet 5, not the API — D17) over CompTIA/ISC2/Google/ISACA/
+Microsoft, in that priority order, reading rendered snapshots directly and staging results
+through the normal `worker submit` path (SEC-005: nothing auto-published).
+
+**Schema change:** added `UpgradePath.Effect.PARTIAL_CREDIT` + a nullable `ceu_amount`
+column (migration `0011`) — CompTIA policy pages state fixed cross-cert CEU grants
+("SecurityX grants 25 CEUs toward Cloud+") that don't fit `renews` (overstates it) or
+`CreditRule` (that's activity-rate, not cert-specific). Threaded through both schema
+mirrors, `publish.py`, `compat.py` (two new keys), `worker/CLAUDE.md`, and tests. Committed
+on `main` @ `44dfabe`. **Needs a VM rebuild + migrate to reach prod**, same as SEC-021.
+
+**140 new facts staged pending** (`extractor=claude-code-local`, un-reviewed —
+`/admin/research/stagedchange/?status__exact=pending`): 29 certification, 55 renewal_rule,
+56 upgrade_path. By provider: CompTIA 70 (incl. the new `partial_credit` edges + the
+previously-missing A+ cert), ISC2 9 (experience-level text only — CPE cycle/fee remains
+unconfirmed, see gap below), Google Cloud 18 (official Foundational/Associate/Professional
+tiers + fees/validity + the previously-missing Cloud Developer cert), ISACA 19 (CPE category
+breakdown for 9 certs from the master policy PDF + 5 new CMMC-family/retired certs +
+prerequisite chain), Microsoft 24 (confirmed free renewal, `renewal_fee_usd=0`, on all
+24 role-based certs).
+
+**Frontier is NOT yet barren.** The background crawl from earlier in this session (~700
+jobs queued across the 5 providers) is still running and had ~672 jobs queued/leased with
+382 done at last check — more snapshots keep landing. This pass mined the highest-value
+pages found at each check-in (hub pages, official policy PDFs, per-cert overview pages);
+deeper/later-arriving snapshots are unmined. To resume: the crawl loop may still be running
+(`ps` for `claude_worker.py fetch`); if not, re-run `worker/claude_worker.py fetch --api
+http://localhost:8000 --n 8` in a loop. Snapshots are cumulative in `worker/jobs/*.html`
+across the whole project history — map `job_id → url` via the DB, not the manifest (the
+worker overwrites `jobs.jsonl` every batch).
+
+**Known gaps flagged, not guessed:**
+- **ISC2 CPE cycle/fee/annual-minimum is unconfirmed** — the canonical policy URL
+  (`isc2.org/policies-procedures/cpe`) 404s and no alternate crawled page states the actual
+  numbers (only per-activity credit caps, not the total required). Needs either a working
+  URL or a different source.
+- **CompTIA Tech+** deliberately excluded from the CEU-table batch — it runs a separate,
+  ambiguous scheme (one exam variant with no expiration, another valid 5 years) that
+  doesn't fit a single ceu_required/cycle_years pair without guessing which applies.
+- **Microsoft expert-tier prerequisites** — the renewal FAQ confirms expert certs require
+  an associate prerequisite generically, but doesn't name the specific pairs; needs
+  individual cert prerequisite pages.
+- **CompTIA's partial-CEU-grant table (job 737 gap check) is now fully captured** via the
+  new `partial_credit` effect — no longer a gap.
+- ISACA's "fundamentals certificates" tier (badge-level, distinct from full certifications)
+  is unexplored — lower priority, noted for a future pass.
+
+**369-item review (done earlier this session, superseded by nothing):** all published via
+`publish.py` (certs-first order, 0 errors); local catalog grew 118 → 398 certifications.
+
+---
+
+## ⇢ Session 3, part 1 (2026-07-20)
 
 **Repo / deploy state**
 - `main` @ `6c735a6`, **+5 ahead of `origin/main` — NOT pushed.** Working tree clean. Only
