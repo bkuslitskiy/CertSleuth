@@ -49,8 +49,29 @@ pmi/scrum-org) were reviewed and **published via `publish.py`** (certs-first ord
 integrity pre-verified: 0 dupes, 0 dangling refs). Local pending queue is now **empty**;
 approver = boris superuser. This is LOCAL sqlite only — see prod gap #1 to get it into prod.
 
+**Crawl in flight (2026-07-20, LOCAL):** a background deterministic fetch worker is draining
+~700 queued jobs for CompTIA / ISC2 / Google / ISACA / Microsoft renewal + CE + cert pages
+(etag-busted so they re-fetch **rendered**), banking snapshots to `worker/jobs/<job_id>.html`.
+Launched **detached** so it survives a Claude Code quota pause (the fetch is deterministic
+Python — no LLM). `worker/CLAUDE.md` now carries an expanded per-page capture checklist
+(complete renewal fields, `credit_rule`, upgrade/prereq/supersedes edges, cert metadata +
+`external_ids`, full cert lists, free offers).
+- **Resume extraction from the snapshots** (they are the source of truth — the worker
+  OVERWRITES `jobs/jobs.jsonl` + `jobs/auto_results.jsonl` each batch, so don't trust them
+  across a multi-batch crawl; map `job_id → url` via the DB `ExtractionJob`, snapshot file is
+  `jobs/<job_id>.html`). Dump readable text with `worker/crawl.py`'s
+  `_CHROME_RE`/`_SCRIPT_STYLE_RE`/`_TAG_RE` (raw HTML is ~650KB rendered — never read it whole).
+- **Extract the GAPS, not the basics** — CompTIA A+/Net+/Sec+ cadence is already in the
+  catalog; re-emitting cadence-only rules would create inferior duplicate versions. Chase
+  fees, grace periods, CEU category caps, credit rules, and the uncovered providers.
+- **Order:** CompTIA, ISC2, Google, then ISACA, then **Microsoft (create the catalog provider
+  + certs first)**. Submit via `worker/claude_worker.py submit` (needs the server + a fresh
+  worker token — mint stores only a hash) or `/research/ingest/`; then review → publish.
+- Regenerate deterministic cert facts across ALL snapshots by running `extractors.py` over
+  `worker/jobs/*.html` if the per-batch `auto_results.jsonl` clobbering lost any.
+
 **Open work queue (mostly local / needs-Boris):**
-- Promote 38 inert `SourceSubmission`s (local, optional next frontier round).
+- Promote the crawl-discovered `SourceSubmission`s (this crawl added many more) — next round.
 - Renewal-rule extraction gaps: CompTIA per-cert CEU, ISC2, Google, ISACA AI certs, Microsoft
   (needs a catalog provider first).
 - Gmail OAuth execution (needs `GOOGLE_OAUTH_*`).

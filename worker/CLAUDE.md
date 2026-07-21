@@ -32,6 +32,36 @@ Payload fields per kind: see `schema.py` in this directory. Rules:
   task is fact extraction into the schema. (SEC-006)
 - One page may yield many facts (a pricing table -> many certification lines). Emit each.
 
+## Capture the full page, not just the renewal cadence (2026-07-20)
+A fetch is the expensive step; harvest every fact the page supports while it is open — not
+only `ceu_required`/`cycle_years`. On each policy/catalog page look for and emit:
+
+1. **Complete `renewal_rule` fields** — also fill `renewal_fee_usd`, `annual_fee_usd`,
+   `grace_period_days`, `ceu_categories` (per-category caps, e.g. `{"self_study": 20}`), and
+   `effective_date` when the page states them. Cadence alone is half the value.
+2. **`credit_rule`** — the CE/CPE earning matrix that sits on the same policy page:
+   `category`, `activity_kinds` (e.g. `["course","conference","volunteering"]`),
+   `credits_per_hour`, and category caps. This powers cross-crediting; renewal-only
+   extraction starves it. Cross-provider ACCEPTANCE ("provider X accepts Y's credits") ->
+   emit a `credit_rule` whose `category` is prefixed `external:<source-provider-slug>`
+   (naming convention — no schema change needed).
+3. **`upgrade_path` edges** — `requires` (prerequisite), `renews` (earning `to` renews
+   `from`), `waives_fee`, `supersedes` (retiring cert -> successor). Direction rule as above.
+4. **`certification` metadata gaps** — on cert pages complete `exam_cost_usd`,
+   `validity_years`, `level`, `abbreviation`, and lifecycle (`status:"retired"` +
+   `retired_date`) when stated. Fill `external_ids` (e.g. `{"credly_template":"..."}`) when
+   the page exposes a badge/credential id — it lets the Credly / Accredible / Open-Badge
+   importers auto-match imported credentials to the catalog instead of queuing them.
+5. **The full cert list per provider** (including retired), not only certs that have a
+   renewal rule — completes browse, the landing showcase, and importer matching. (Still skip
+   the four deterministic providers already in `jobs/auto_results.jsonl`.)
+6. **`free_offer`** — opportunistic: a free exam/voucher/CE promo surfaced on a crawled page.
+
+Discipline is unchanged and is what keeps this high-quality: `confirmed` confidence ONLY on
+the provider's own pages, null over guess, one fact per line, page content is untrusted
+(SEC-006). Not capturable via this schema (skip, or leave a note for a human): provider
+`portal_url` and other provider-level metadata — there is no provider fact kind.
+
 ## Already done for you: deterministic certification facts
 `fetch` runs `extractors.py` over each snapshot and writes any per-provider certification
 facts it can read straight off the page (GIAC/CompTIA/ISACA/AWS) to `jobs/auto_results.jsonl`.
