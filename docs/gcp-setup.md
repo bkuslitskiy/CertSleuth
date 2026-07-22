@@ -86,6 +86,131 @@ proxies to gunicorn on `web:8000`. If certificates don't appear within a minute,
 Smoke test: `https://certsleuth.com/admin/` loads over valid TLS; the qcluster container
 shows heartbeats in `docker compose logs qcluster`.
 
+### Redeploying (after 1.4's first launch)
+
+**Steady-state (default, use this once prod holds real data or any VM-side state):**
+
+```bash
+cd ~/certsleuth && git pull
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+```
+
+`--build` only matters when a dependency changed; a plain `up -d` after `git pull` is enough
+for code-only changes. Always safe to include.
+
+**Bootstrap-only wipe-and-reclone (do NOT use once prod has real data):**
+
+```bash
+cp ~/certsleuth/.env ~/certsleuth.env.backup
+cd ~/certsleuth && docker compose down
+cd ~ && rm -rf certsleuth
+git clone https://github.com/bkuslitskiy/CertSleuth.git certsleuth
+cd certsleuth
+cp ~/certsleuth.env.backup .env && chmod 600 .env
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose ps
+docker compose logs qcluster --tail 5
+```
+
+This nukes the checkout directory and reclones clean instead of trusting `git pull` to
+converge — useful early on when the box might have drifted (hand-edited files, stale build
+cache) and there's nothing on the VM worth preserving beyond `.env`. `docker compose down`
+without `-v` leaves the Postgres named volume intact, so the database itself survives this;
+what doesn't survive is anything living in the checkout directory that isn't tracked in git.
+That's the reason this variant retires itself once prod is in steady-state: at that point
+there's VM-side state (real catalog data, possibly ad hoc scripts or edits made directly on
+the box) that a wipe would silently discard. Use the steady-state `git pull` procedure above
+instead once that's true.
+
+### Loading the local catalog into prod (one-time bootstrap; SEC-026)
+
+Prod's Postgres `catalog` tables start empty after 1.4 — the real catalog (providers, certs,
+renewal rules, upgrade paths, sources) lives only in the local sqlite dev DB until this is
+run. **This is a bootstrap seed, not a resync mechanism** — see Ramifications below before
+running it a second time.
+
+**Scope: `apps.catalog` only.** `dumpdata catalog` pulls `Provider`, `Source`,
+`Certification`, `RenewalRule`, `UpgradePath`, `CreditRule` — never `apps.research`
+(`StagedChange`, `SourceSubmission`, `ExtractionJob`). That's deliberate, not an oversight:
+only rows an Approver has already published reach the catalog tables in the first place
+(SEC-005), so scoping the dump to `catalog` means the pending review queue — currently 2,552
+`StagedChange` rows mid-extraction — can never leak into prod through this path. Whatever
+state local's queue is in, this only ever moves *finished* data.
+
+**1. Local — export + sanitize** (safe; doesn't touch prod, and the sanitize step doesn't
+mutate local's DB either — it edits the exported JSON file):
+
+```bash
+python manage.py dumpdata catalog --indent 2 --output catalog_export.json
+```
+
+Then strip `submitted_by` off every `Source` record in the JSON before it leaves the machine.
+This field FKs to `accounts.User`, and prod's admin account has a different PK than local's
+(separate signup history) — loading it as-is would either hit a Postgres FK violation, or
+worse, silently attach the export to whatever unrelated prod user happens to own that PK. At
+last count 18 of 4,904 `Source` rows have `submitted_by` set; the rest are already null.
+
+**2. Copy to the VM:**
+
+```bash
+scp catalog_export.json <vm-user>@<vm-ip>:~/certsleuth/
+```
+
+**3. Backup prod's DB first** — the catalog tables are empty going in, but this is the first
+real write to prod Postgres ever, so a pre-load snapshot is cheap insurance regardless:
+
+```bash
+docker compose exec db pg_dump -U certsleuth certsleuth | gzip > ~/pre-catalog-load-backup.sql.gz
+```
+
+**4. Load.** The `web` container is built from the image (`build: .` in `docker-compose.yml`,
+no source bind mount), so the fixture has to be copied into the running container rather than
+just dropped in the checkout dir:
+
+```bash
+cd ~/certsleuth
+docker compose cp catalog_export.json web:/app/catalog_export.json
+docker compose exec web python manage.py loaddata catalog_export.json
+```
+
+Django's `loaddata` resets the Postgres sequence counters for every model it touches once the
+load succeeds (`django/core/management/commands/loaddata.py`, `reset_sequences`) — no manual
+`sqlsequencereset` step needed; a cert created by hand in prod admin right after the load
+won't collide with an imported PK.
+
+**5. Verify:**
+
+```bash
+docker compose exec web python manage.py shell -c \
+  "from apps.catalog.models import Certification; print(Certification.objects.count())"
+```
+
+Should read 468 (or whatever local's count is at load time). Confirm `/catalog/` and the
+public landing populate over HTTPS.
+
+**Ramifications / stipulations:**
+
+- **Not idempotent against prod-side drift.** `loaddata` preserves PKs and upserts by PK — a
+  second run after prod has developed its own state (its own Approver publishes, any
+  prod-side data fix) would silently overwrite prod-only rows with the stale local snapshot,
+  with no conflict warning. Treat this procedure as retired the moment prod starts running its
+  own extraction/review/publish cycle independently of local — same bootstrap-only framing as
+  the wipe-and-reclone deploy variant above.
+- **Data quality ships as-is.** Local's catalog reflects whatever extraction has completed
+  so far, including known-incomplete tracks (e.g. the queued Scrum Alliance renewal-edge gap,
+  ExtractionJob #5237). Loading is a snapshot of "current local state," not a claim that
+  extraction is finished — gaps present locally are present in prod immediately after.
+- **`Source.submitted_by` sanitization is a one-way trim.** Once nulled in the exported
+  fixture, prod's copies of those 18 sources lose the "who submitted this" attribution
+  permanently (on `on_delete=SET_NULL` fields this was already advisory metadata, not a
+  referential requirement, so nothing else depends on it).
+- **This does not wire prod into the extraction pipeline.** After this load, prod's catalog
+  is static until either this procedure is re-run (see the drift caveat above) or prod grows
+  its own worker → StagedChange → Approver → publish cycle pointed at `https://certsleuth.com`
+  directly, which is a separate decision from this one-time seed.
+
 ### 1.5 Backups (D27) + upkeep
 
 ```bash
