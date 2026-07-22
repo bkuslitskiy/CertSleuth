@@ -2,6 +2,9 @@
 
 You are extracting certification facts from snapshotted provider pages into results.jsonl.
 
+(A local-LLM alternative to this manual pass exists at `worker/local_extract.py` — same
+input/output contract, runs against Ollama instead of spending quota here. SEC-025.)
+
 ## Input
 - `jobs/jobs.jsonl` — one line per job: {job_id, source_url, snapshot, snapshot_hash}
 - `jobs/<id>.html` — the page content

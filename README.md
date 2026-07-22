@@ -30,8 +30,13 @@ surfaces automatically (SEC-012); the "Review queue" nav link appears for them a
 2. Mint a worker token: admin → Worker tokens → add (token shown once).
 3. On your machine: `export CERTSLEUTH_WORKER_TOKEN=...` then
    `python worker/claude_worker.py fetch --api https://certsleuth.com --n 25`
-4. Run Claude Code in `worker/` — `CLAUDE.md` there is the extraction instruction set;
-   it produces `results.jsonl` and validates it with `worker/schema.py`.
+4. Extract facts from `jobs/*.html` into `results.jsonl`, either:
+   - Run Claude Code in `worker/` — `CLAUDE.md` there is the extraction instruction set; or
+   - `python worker/local_extract.py` — a local-LLM alternative (SEC-025) that runs the same
+     extraction against Ollama on your own GPU instead of spending Sonnet quota on bulk text
+     processing. Setup + model recommendation (a 16GB-card-sized Qwen2.5 instruct model) is
+     in the script's docstring. Same output format, same `worker/schema.py` validation, same
+     StagedChange review gate — it only changes which model reads the page.
 5. `python worker/claude_worker.py submit results.jsonl --api https://certsleuth.com`
    — or upload the file at `/research/ingest/` (batch mode, same validation).
 6. Review queue: bulk approve/reject by source. Nothing publishes without approval.
